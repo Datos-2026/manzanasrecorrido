@@ -7,7 +7,7 @@ import {
   canManageBlocks,
   canManageAssignments,
   canViewDashboard,
-  isRecorridor,
+  isRecorredor,
 } from '../../utils/roles';
 const linkClass = ({ isActive }) =>
   `desktop-sidebar__link ${isActive ? 'desktop-sidebar__link--active' : ''}`;
@@ -35,7 +35,7 @@ export default function DesktopSidebar() {
         )}
       </div>
       <nav className="desktop-sidebar__nav">
-        {isRecorridor(user) ? (
+        {isRecorredor(user) ? (
           <>
             <NavLink to="/mis-manzanas" className={linkClass}>
               Mis manzanas

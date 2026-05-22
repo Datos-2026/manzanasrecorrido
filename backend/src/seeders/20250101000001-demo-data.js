@@ -20,7 +20,7 @@ module.exports = {
     const communeId = randomUUID();
     const adminId = randomUUID();
     const coordinadorId = randomUUID();
-    const recorridorId = randomUUID();
+    const recorredorId = randomUUID();
 
     const passwordHash = await bcrypt.hash('password123', 10);
 
@@ -63,13 +63,13 @@ module.exports = {
         updatedAt: now,
       },
       {
-        id: recorridorId,
+        id: recorredorId,
         firstName: 'Juan',
-        lastName: 'Recorridor',
-        email: 'recorridor@test.com',
+        lastName: 'Recorredor',
+        email: 'recorredor@test.com',
         phone: '2222222222',
         passwordHash,
-        role: 'recorridor',
+        role: 'recorredor',
         communeId,
         isActive: true,
         createdAt: now,
@@ -101,7 +101,7 @@ module.exports = {
 
     const assignments = blockIds.slice(0, 5).map((blockId) => ({
       id: randomUUID(),
-      userId: recorridorId,
+      userId: recorredorId,
       blockId,
       assignedBy: coordinadorId,
       startDate: '2025-01-01',

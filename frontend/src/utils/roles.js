@@ -1,7 +1,7 @@
 export const ROLES = {
   ADMIN: 'admin',
   COORDINADOR: 'coordinador',
-  RECORRIDOR: 'recorridor',
+  RECORREDOR: 'recorredor',
 };
 
 export function isAdmin(user) {
@@ -12,8 +12,8 @@ export function isCoordinador(user) {
   return user?.role === ROLES.COORDINADOR;
 }
 
-export function isRecorridor(user) {
-  return user?.role === ROLES.RECORRIDOR;
+export function isRecorredor(user) {
+  return user?.role === ROLES.RECORREDOR;
 }
 
 export function canManageUsers(user) {
@@ -39,5 +39,5 @@ export function canViewDashboard(user) {
 export const ROLE_LABELS = {
   admin: 'Administrador',
   coordinador: 'Coordinador',
-  recorridor: 'Recorridor',
+  recorredor: 'Recorredor',
 };

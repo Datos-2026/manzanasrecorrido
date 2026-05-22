@@ -12,7 +12,7 @@ const router = express.Router();
 
 router.use(authMiddleware);
 
-router.get('/my-blocks', requireRoles('recorridor'), assignmentController.myBlocks);
+router.get('/my-blocks', requireRoles('recorredor'), assignmentController.myBlocks);
 
 router.use(requireRoles('admin', 'coordinador'));
 router.get('/', assignmentController.list);

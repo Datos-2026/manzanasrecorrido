@@ -121,7 +121,7 @@ export default function DashboardPage() {
         )}
 
         <h2 className="page-title" style={{ fontSize: '1.125rem' }}>
-          Por recorridor
+          Por recorredor
         </h2>
         <div className="entity-list-mobile">
           {weekly?.byUser?.length ? (
@@ -179,11 +179,11 @@ export default function DashboardPage() {
         </div>
 
         <div className="data-table-wrap">
-          <SectionCard title="Vista tabla — recorridores">
+          <SectionCard title="Vista tabla — recorredores">
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border-soft)' }}>
-                  <th style={{ textAlign: 'left', padding: 8 }}>Recorridor</th>
+                  <th style={{ textAlign: 'left', padding: 8 }}>Recorredor</th>
                   <th>Asig.</th>
                   <th>Rec.</th>
                   <th>%</th>

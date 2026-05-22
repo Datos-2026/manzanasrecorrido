@@ -14,9 +14,9 @@ module.exports = {
       phone: { type: Sequelize.STRING, allowNull: true },
       passwordHash: { type: Sequelize.STRING, allowNull: false },
       role: {
-        type: Sequelize.ENUM('admin', 'coordinador', 'recorridor'),
+        type: Sequelize.ENUM('admin', 'coordinador', 'recorredor'),
         allowNull: false,
-        defaultValue: 'recorridor',
+        defaultValue: 'recorredor',
       },
       communeId: {
         type: Sequelize.UUID,

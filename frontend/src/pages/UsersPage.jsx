@@ -21,7 +21,7 @@ const emptyForm = {
   email: '',
   phone: '',
   password: '',
-  role: 'recorridor',
+  role: 'recorredor',
   communeId: '',
 };
 
@@ -118,7 +118,7 @@ export default function UsersPage() {
             style={{ minHeight: 48, flex: 1 }}
           >
             <option value="">Todos los roles</option>
-            <option value="recorridor">Recorridor</option>
+            <option value="recorredor">Recorredor</option>
             <option value="coordinador">Coordinador</option>
             {isAdmin(user) && <option value="admin">Admin</option>}
           </select>
@@ -214,7 +214,7 @@ export default function UsersPage() {
                       value={form.role}
                       onChange={(e) => setForm({ ...form, role: e.target.value })}
                     >
-                      <option value="recorridor">Recorridor</option>
+                      <option value="recorredor">Recorredor</option>
                       <option value="coordinador">Coordinador</option>
                       <option value="admin">Administrador</option>
                     </select>

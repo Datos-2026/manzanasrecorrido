@@ -6,7 +6,7 @@ const createUserSchema = z.object({
   email: z.string().email('Email inválido'),
   phone: z.string().optional().nullable(),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
-  role: z.enum(['admin', 'coordinador', 'recorridor']).default('recorridor'),
+  role: z.enum(['admin', 'coordinador', 'recorredor']).default('recorredor'),
   communeId: z.string().uuid().optional().nullable(),
   isActive: z.boolean().optional(),
 });

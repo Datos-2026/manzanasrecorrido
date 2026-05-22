@@ -4,7 +4,7 @@ const ApiError = require('../utils/ApiError');
 
 async function list(req, res, next) {
   try {
-    if (req.user.role === 'recorridor') {
+    if (req.user.role === 'recorredor') {
       throw new ApiError(403, 'No tenés permisos');
     }
 
@@ -30,7 +30,7 @@ async function list(req, res, next) {
       order: [['code', 'ASC']],
     });
 
-    if (assigned === 'true' && req.user.role === 'recorridor') {
+    if (assigned === 'true' && req.user.role === 'recorredor') {
       const assignments = await BlockAssignment.findAll({
         where: { userId: req.user.id, isActive: true },
         attributes: ['blockId'],

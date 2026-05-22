@@ -18,7 +18,7 @@ vecinos ni trámites públicos. Su foco es operativo y territorial:
 
 Ejemplo de uso real:
   Un coordinador de la Comuna 2 asigna las manzanas C2REC-001 a C2REC-010 a
-  distintos recorridores. Cada semana, los recorridores cargan si visitaron
+  distintos recorredores. Cada semana, los recorredores cargan si visitaron
   sus manzanas y qué observaron (basura, voluminosos, puntos críticos, etc.).
   El administrador o coordinador ve en el dashboard el porcentaje de cobertura.
 
@@ -40,7 +40,7 @@ Hay tres roles con permisos distintos:
     - Crea/edita manzanas y asignaciones de su comuna.
     - Ve recorridos y dashboard de su comuna.
 
-  RECORRIDOR
+  RECORREDOR
     - Ve solo las manzanas que tiene asignadas activamente.
     - Carga recorridos únicamente sobre esas manzanas.
     - Ve su propio historial de recorridos.
@@ -56,7 +56,7 @@ real está en la API.
 
   COMUNA
     Unidad territorial administrativa (ej. "Comuna 2", código "C2").
-    Agrupa manzanas y usuarios (coordinadores y recorridores).
+    Agrupa manzanas y usuarios (coordinadores y recorredores).
 
   MANZANA (block)
     Unidad mínima de recorrido asignable. Se identifica por un CÓDIGO único
@@ -143,7 +143,7 @@ Endpoints principales (prefijo /api):
 
 Reglas de negocio destacadas:
 
-  - Recorridor: POST /visits solo si tiene asignación activa para esa manzana.
+  - Recorredor: POST /visits solo si tiene asignación activa para esa manzana.
   - Coordinador: no puede ver ni modificar recursos de otra comuna.
   - Cobertura semanal: semana calendario (lunes a domingo).
       * Manzanas asignadas activas en ese rango de fechas.
@@ -192,7 +192,7 @@ Navegación según rol (Sidebar):
 
   Admin/Coordinador: Dashboard, Recorridos, Asignaciones, Manzanas, Usuarios
   Admin solo:        Comunas
-  Recorridor:        Mis manzanas, Cargar recorrido, Recorridos (propios)
+  Recorredor:        Mis manzanas, Cargar recorrido, Recorridos (propios)
 
 Páginas principales:
 
@@ -202,7 +202,7 @@ Páginas principales:
   CommunesPage      → CRUD comunas (solo admin)
   BlocksPage        → CRUD manzanas con filtros
   AssignmentsPage   → asignar/desactivar manzanas
-  MyBlocksPage      → manzanas del recorridor + botón cargar recorrido
+  MyBlocksPage      → manzanas del recorredor + botón cargar recorrido
   NewVisitPage      → formulario completo de recorrido + higiene
   VisitsPage        → listado con filtros
   VisitDetailPage   → detalle de un recorrido
@@ -257,7 +257,7 @@ Estilo visual:
   Usuarios:
     admin@test.com       / password123  (admin)
     coordinador@test.com / password123  (coordinador Comuna 2)
-    recorridor@test.com  / password123  (recorridor, 5 manzanas asignadas)
+    recorredor@test.com  / password123  (recorredor, 5 manzanas asignadas)
 
   El seeder es idempotente: si los datos ya existen, no duplica al reejecutar.
   Para reset completo: npm run db:reset en la carpeta backend.

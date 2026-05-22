@@ -9,7 +9,7 @@ async function list(req, res, next) {
     const where = {};
     const blockWhere = {};
 
-    if (req.user.role === 'recorridor') {
+    if (req.user.role === 'recorredor') {
       where.userId = req.user.id;
     } else if (req.user.role === 'coordinador') {
       blockWhere.communeId = req.user.communeId;
@@ -17,7 +17,7 @@ async function list(req, res, next) {
       blockWhere.communeId = communeId;
     }
 
-    if (userId && req.user.role !== 'recorridor') where.userId = userId;
+    if (userId && req.user.role !== 'recorredor') where.userId = userId;
     if (blockId) where.blockId = blockId;
     if (dateFrom || dateTo) {
       where.visitDate = {};
@@ -58,7 +58,7 @@ async function getById(req, res, next) {
     });
     if (!visit) throw new ApiError(404, 'Recorrido no encontrado');
 
-    if (req.user.role === 'recorridor' && visit.userId !== req.user.id) {
+    if (req.user.role === 'recorredor' && visit.userId !== req.user.id) {
       throw new ApiError(403, 'No tenés permisos');
     }
     if (req.user.role === 'coordinador' && visit.block.communeId !== req.user.communeId) {
@@ -77,7 +77,7 @@ async function create(req, res, next) {
     const data = req.validated;
     const userId = req.user.id;
 
-    if (req.user.role === 'recorridor') {
+    if (req.user.role === 'recorredor') {
       const assigned = await hasActiveAssignment(userId, data.blockId);
       if (!assigned) {
         throw new ApiError(403, 'No tenés asignación activa para esta manzana');
@@ -132,7 +132,7 @@ async function update(req, res, next) {
     });
     if (!visit) throw new ApiError(404, 'Recorrido no encontrado');
 
-    if (req.user.role === 'recorridor' && visit.userId !== req.user.id) {
+    if (req.user.role === 'recorredor' && visit.userId !== req.user.id) {
       throw new ApiError(403, 'No tenés permisos');
     }
     if (req.user.role === 'coordinador' && visit.block.communeId !== req.user.communeId) {
@@ -172,7 +172,7 @@ async function remove(req, res, next) {
     });
     if (!visit) throw new ApiError(404, 'Recorrido no encontrado');
 
-    if (req.user.role === 'recorridor' && visit.userId !== req.user.id) {
+    if (req.user.role === 'recorredor' && visit.userId !== req.user.id) {
       throw new ApiError(403, 'No tenés permisos');
     }
     if (req.user.role === 'coordinador' && visit.block.communeId !== req.user.communeId) {

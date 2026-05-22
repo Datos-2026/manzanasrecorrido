@@ -16,11 +16,11 @@ import VisitDetailPage from '../pages/VisitDetailPage';
 import NotFoundPage from '../pages/NotFoundPage';
 import MorePage from '../pages/MorePage';
 import { useAuth } from '../hooks/useAuth';
-import { canViewDashboard, isRecorridor } from '../utils/roles';
+import { canViewDashboard, isRecorredor } from '../utils/roles';
 
 function HomeRedirect() {
   const { user } = useAuth();
-  if (isRecorridor(user)) return <Navigate to="/mis-manzanas" replace />;
+  if (isRecorredor(user)) return <Navigate to="/mis-manzanas" replace />;
   if (canViewDashboard(user)) return <DashboardPage />;
   return <Navigate to="/recorridos" replace />;
 }
@@ -74,7 +74,7 @@ export default function AppRouter() {
             <Route
               path="mis-manzanas"
               element={
-                <RoleGuard roles={['recorridor']}>
+                <RoleGuard roles={['recorredor']}>
                   <MyBlocksPage />
                 </RoleGuard>
               }

@@ -7,7 +7,7 @@ async function weekly(req, res, next) {
 
     if (req.user.role === 'coordinador') {
       communeId = req.user.communeId;
-    } else if (req.user.role === 'recorridor') {
+    } else if (req.user.role === 'recorredor') {
       throw new ApiError(403, 'No tenés permisos para ver el dashboard');
     }
 
@@ -28,7 +28,7 @@ async function summary(req, res, next) {
 
     if (req.user.role === 'coordinador') {
       communeId = req.user.communeId;
-    } else if (req.user.role === 'recorridor') {
+    } else if (req.user.role === 'recorredor') {
       throw new ApiError(403, 'No tenés permisos');
     } else if (req.query.communeId) {
       communeId = req.query.communeId;

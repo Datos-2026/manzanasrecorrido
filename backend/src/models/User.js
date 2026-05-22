@@ -31,9 +31,9 @@ module.exports = (sequelize) => {
         allowNull: false,
       },
       role: {
-        type: DataTypes.ENUM('admin', 'coordinador', 'recorridor'),
+        type: DataTypes.ENUM('admin', 'coordinador', 'recorredor'),
         allowNull: false,
-        defaultValue: 'recorridor',
+        defaultValue: 'recorredor',
       },
       communeId: {
         type: DataTypes.UUID,

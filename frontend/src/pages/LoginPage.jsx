@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { isRecorridor } from '../utils/roles';
+import { isRecorredor } from '../utils/roles';
 import FormField from '../components/ui/FormField';
 import PrimaryButton from '../components/ui/PrimaryButton';
 import ErrorState from '../components/ui/ErrorState';
@@ -15,7 +15,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   if (user) {
-    return <Navigate to={isRecorridor(user) ? '/mis-manzanas' : '/'} replace />;
+    return <Navigate to={isRecorredor(user) ? '/mis-manzanas' : '/'} replace />;
   }
 
   const handleSubmit = async (e) => {
@@ -24,7 +24,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const logged = await login(email, password);
-      navigate(isRecorridor(logged) ? '/mis-manzanas' : '/');
+      navigate(isRecorredor(logged) ? '/mis-manzanas' : '/');
     } catch (err) {
       setError(err.message || 'Error al iniciar sesión');
     } finally {

@@ -67,9 +67,9 @@ App: http://localhost:5173
 |-----|-------|------------|
 | Admin | admin@test.com | password123 |
 | Coordinador | coordinador@test.com | password123 |
-| Recorridor | recorridor@test.com | password123 |
+| Recorredor | recorredor@test.com | password123 |
 
-Datos seed: Comuna 2, manzanas C2REC-001 a C2REC-010, 5 manzanas asignadas al recorridor.
+Datos seed: Comuna 2, manzanas C2REC-001 a C2REC-010, 5 manzanas asignadas al recorredor.
 
 ## Dominio
 
@@ -89,7 +89,7 @@ Datos seed: Comuna 2, manzanas C2REC-001 a C2REC-010, 5 manzanas asignadas al re
 | GET/POST/PATCH/DELETE | `/api/communes` | Comunas |
 | GET/POST/PATCH/DELETE | `/api/blocks` | Manzanas |
 | GET/POST/PATCH/DELETE | `/api/assignments` | Asignaciones |
-| GET | `/api/assignments/my-blocks` | Manzanas del recorridor |
+| GET | `/api/assignments/my-blocks` | Manzanas del recorredor |
 | GET/POST/PATCH/DELETE | `/api/visits` | Recorridos |
 | GET | `/api/dashboard/weekly` | Cobertura semanal |
 | GET | `/api/dashboard/summary` | Indicadores generales |
@@ -98,14 +98,14 @@ Datos seed: Comuna 2, manzanas C2REC-001 a C2REC-010, 5 manzanas asignadas al re
 
 - **admin**: acceso total
 - **coordinador**: solo su comuna (usuarios, manzanas, asignaciones, recorridos, dashboard)
-- **recorridor**: sus manzanas asignadas y sus recorridos
+- **recorredor**: sus manzanas asignadas y sus recorridos
 
 ## Flujo de prueba rápido
 
 1. Login como `admin@test.com` → ver dashboard de cobertura
 2. Ir a Manzanas → listar C2REC-001…010
-3. Ir a Asignaciones → ver asignaciones al recorridor
-4. Login como `recorridor@test.com` → Mis manzanas → Cargar recorrido
+3. Ir a Asignaciones → ver asignaciones al recorredor
+4. Login como `recorredor@test.com` → Mis manzanas → Cargar recorrido
 5. Completar formulario y guardar
 6. Login admin → Dashboard actualizado con cobertura
 

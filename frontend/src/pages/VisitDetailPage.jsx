@@ -146,7 +146,7 @@ export default function VisitDetailPage() {
             <strong>Fecha:</strong> {formatDate(visit.visitDate)}
           </p>
           <p style={{ margin: '0 0 8px', fontSize: 14 }}>
-            <strong>Recorridor:</strong> {visit.user?.firstName} {visit.user?.lastName}
+            <strong>Recorredor:</strong> {visit.user?.firstName} {visit.user?.lastName}
           </p>
           <p style={{ margin: 0, fontSize: 14 }}>
             <strong>Pudo recorrer:</strong> {visit.couldVisit ? 'Sí' : 'No'}

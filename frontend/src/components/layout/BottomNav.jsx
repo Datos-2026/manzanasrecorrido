@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import {
-  isRecorridor,
+  isRecorredor,
   isAdmin,
   canManageAssignments,
   canManageBlocks,
@@ -27,7 +27,7 @@ function NavItem({ to, end, label, icon: Icon }) {
 export default function BottomNav() {
   const { user } = useAuth();
 
-  if (isRecorridor(user)) {
+  if (isRecorredor(user)) {
     return (
       <nav className="bottom-nav" aria-label="Navegación principal">
         <NavItem to="/mis-manzanas" end label="Mis manzanas" icon={IconMap} />

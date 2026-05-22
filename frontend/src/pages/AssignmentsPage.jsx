@@ -35,7 +35,7 @@ export default function AssignmentsPage() {
         blocksApi.list({ active: 'true' }),
       ]);
       setAssignments(a);
-      setUsers(u.filter((x) => x.role === 'recorridor' && x.isActive));
+      setUsers(u.filter((x) => x.role === 'recorredor' && x.isActive));
       setBlocks(b);
     } catch (err) {
       setError(err.message);
@@ -84,7 +84,7 @@ export default function AssignmentsPage() {
         {formOpen && (
           <SectionCard title="Asignar manzana" noDivider>
             <form onSubmit={handleSubmit}>
-              <FormField label="Recorridor" id="user">
+              <FormField label="Recorredor" id="user">
                 <select
                   id="user"
                   value={form.userId}

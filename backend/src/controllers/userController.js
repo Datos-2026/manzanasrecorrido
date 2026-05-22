@@ -34,7 +34,7 @@ async function getById(req, res, next) {
     if (req.user.role === 'coordinador' && user.communeId !== req.user.communeId) {
       throw new ApiError(403, 'No tenés permisos');
     }
-    if (req.user.role === 'recorridor' && req.params.id !== req.user.id) {
+    if (req.user.role === 'recorredor' && req.params.id !== req.user.id) {
       throw new ApiError(403, 'No tenés permisos');
     }
 

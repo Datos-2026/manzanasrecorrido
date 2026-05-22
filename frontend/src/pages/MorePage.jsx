@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { ROLE_LABELS } from '../utils/roles';
-import { canManageUsers, canManageCommunes, isRecorridor } from '../utils/roles';
+import { canManageUsers, canManageCommunes, isRecorredor } from '../utils/roles';
 import MobileHeader from '../components/layout/MobileHeader';
 import PageContainer from '../components/ui/PageContainer';
 import SectionCard from '../components/ui/SectionCard';
@@ -23,7 +23,7 @@ export default function MorePage() {
         </SectionCard>
 
         <nav className="more-menu" aria-label="Menú adicional">
-          {!isRecorridor(user) && canManageUsers(user) && (
+          {!isRecorredor(user) && canManageUsers(user) && (
             <Link to="/usuarios" className="more-menu__item">
               Gestión de usuarios
               <IconChevron />

@@ -51,7 +51,7 @@ export default function VisitsPage() {
       const results = await Promise.all(promises);
       setVisits(results[0]);
       if (results[1]) {
-        setUsers(results[1].filter((u) => u.role === 'recorridor'));
+        setUsers(results[1].filter((u) => u.role === 'recorredor'));
         setBlocks(results[2]);
         setCommunes(results[3]);
       }
@@ -80,7 +80,7 @@ export default function VisitsPage() {
       <MobileHeader
         title="Historial de recorridos"
         action={
-          user.role === 'recorridor' ? (
+          user.role === 'recorredor' ? (
             <Link to="/recorridos/nuevo" className="btn btn--primary btn--sm">
               + Nuevo
             </Link>
@@ -116,7 +116,7 @@ export default function VisitsPage() {
                   value={filters.userId}
                   onChange={(e) => setFilters({ ...filters, userId: e.target.value })}
                 >
-                  <option value="">Todos los recorridores</option>
+                  <option value="">Todos los recorredores</option>
                   {users.map((u) => (
                     <option key={u.id} value={u.id}>
                       {u.firstName} {u.lastName}

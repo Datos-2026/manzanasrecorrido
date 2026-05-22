@@ -6,7 +6,7 @@ import {
   canManageBlocks,
   canManageAssignments,
   canViewDashboard,
-  isRecorridor,
+  isRecorredor,
 } from '../utils/roles';
 
 const linkClass = ({ isActive }) => (isActive ? 'nav-link active' : 'nav-link');
@@ -22,7 +22,7 @@ export default function Sidebar() {
             Dashboard
           </NavLink>
         )}
-        {isRecorridor(user) && (
+        {isRecorredor(user) && (
           <>
             <NavLink to="/mis-manzanas" className={linkClass}>
               Mis manzanas
