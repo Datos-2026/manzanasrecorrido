@@ -9,7 +9,7 @@ import StatusChip from '../components/ui/StatusChip';
 import LoadingState from '../components/ui/LoadingState';
 import ErrorState from '../components/ui/ErrorState';
 
-const SURVEY_LABELS = {
+const SURVEY_LABELS_INITIAL = {
   frontType: 'Tipo de frente',
   buildingUnits: 'Cantidad de departamentos',
   hasSidewalkContainer: 'Contenedor en vereda',
@@ -25,6 +25,23 @@ const SURVEY_LABELS = {
   scatteredTrash: 'Residuos diseminados',
   hasBadBehavior: 'Conductas a corregir',
   badBehaviorDescription: 'Descripción conducta',
+};
+
+const SURVEY_LABELS_FOLLOWUP = {
+  spokeWith: 'Habló con',
+  hygieneTrend: 'Higiene vs. visita anterior',
+  hygieneTrendOther: 'Detalle',
+  scatteredAroundContainer: 'Residuos diseminados estos días',
+  scatteredSchedule: 'Horario observado',
+  bulkyOrRubble: 'Voluminosos/poda/escombros junto al contenedor',
+  flyerPosted: '¿Pegó el flyer?',
+  flyerFeedback: 'Repercusión del flyer',
+  behaviorsToCorrect: 'Conductas a corregir',
+  containerState: 'Estado del contenedor',
+  containerStateOther: 'Detalle contenedor',
+  hasIncidents: '¿Detectó incidencias?',
+  incidentsDescription: 'Incidencias',
+  observations: 'Observaciones',
 };
 
 const SURVEY_VALUE_LABELS = {
@@ -56,10 +73,21 @@ const SURVEY_VALUE_LABELS = {
   muy_mala: 'Muy mala',
   todos_los_dias: 'Todos los días',
   nunca: 'Nunca',
+  mejoro: 'Mejoró',
+  igual: 'Igual',
+  empeoro: 'Empeoró',
+  limpio: 'Limpio y en orden',
+  residuos_alrededor: 'Con residuos alrededor',
+  desbordado: 'Desbordado',
+  desperfectos: 'Con desperfectos',
+  no_aplica: 'No aplica',
 };
 
 function SurveyDetails({ data }) {
-  const rows = Object.entries(SURVEY_LABELS)
+  const labels =
+    data?.kind === 'seguimiento' ? SURVEY_LABELS_FOLLOWUP : SURVEY_LABELS_INITIAL;
+
+  const rows = Object.entries(labels)
     .map(([key, label]) => {
       const raw = data[key];
       if (raw === undefined || raw === null || raw === '') return null;
@@ -142,6 +170,15 @@ export default function VisitDetailPage() {
           action={<StatusChip status={visit.status} />}
           noDivider
         >
+          {visit.weekNumber ? (
+            <div style={{ marginBottom: 12 }}>
+              <span className="context-pill context-pill--accent">
+                {visit.weekNumber === 1
+                  ? 'Primer relevamiento'
+                  : `Relevamiento semana ${visit.weekNumber} de 5`}
+              </span>
+            </div>
+          ) : null}
           <p style={{ margin: '0 0 8px', fontSize: 14 }}>
             <strong>Fecha:</strong> {formatDate(visit.visitDate)}
           </p>
@@ -183,7 +220,14 @@ export default function VisitDetailPage() {
         </SectionCard>
 
         {visit.surveyData && (
-          <SectionCard title="Relevamiento de higiene" noDivider>
+          <SectionCard
+            title={
+              visit.surveyData.kind === 'seguimiento'
+                ? `Relevamiento de seguimiento (semana ${visit.weekNumber || ''})`
+                : 'Primer relevamiento'
+            }
+            noDivider
+          >
             <SurveyDetails data={visit.surveyData} />
           </SectionCard>
         )}

@@ -1,5 +1,5 @@
 const { formatDateISO } = require('../utils/dates');
-const { BlockAssignment, Block, User, Commune } = require('../models');
+const { BlockAssignment, Block, User, Commune, Visit } = require('../models');
 const ApiError = require('../utils/ApiError');
 const {
   ensureNoDuplicateActive,
@@ -45,11 +45,38 @@ async function myBlocks(req, res, next) {
       order: [[{ model: Block, as: 'block' }, 'code', 'ASC']],
     });
 
-    const blocks = assignments.map((a) => ({
-      assignmentId: a.id,
-      startDate: a.startDate,
-      ...a.block.toJSON(),
-    }));
+    const blockIds = assignments.map((a) => a.blockId);
+
+    const visits = blockIds.length
+      ? await Visit.findAll({
+          where: { blockId: blockIds, userId: req.user.id },
+          attributes: ['id', 'blockId', 'weekNumber', 'visitDate', 'createdAt'],
+          order: [['createdAt', 'DESC']],
+        })
+      : [];
+
+    const byBlock = {};
+    visits.forEach((v) => {
+      const list = byBlock[v.blockId] || (byBlock[v.blockId] = []);
+      list.push(v);
+    });
+
+    const blocks = assignments.map((a) => {
+      const blockVisits = byBlock[a.blockId] || [];
+      const maxWeek = blockVisits.reduce((m, v) => Math.max(m, v.weekNumber || 0), 0);
+      const lastVisit = blockVisits[0] || null;
+      const nextWeekNumber = Math.min(5, maxWeek + 1);
+      return {
+        assignmentId: a.id,
+        startDate: a.startDate,
+        ...a.block.toJSON(),
+        visitsCount: blockVisits.length,
+        lastVisitDate: lastVisit ? lastVisit.visitDate : null,
+        currentMaxWeek: maxWeek,
+        nextWeekNumber,
+        completed: maxWeek >= 5,
+      };
+    });
 
     res.json(blocks);
   } catch (err) {
