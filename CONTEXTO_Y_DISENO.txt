@@ -1,0 +1,284 @@
+================================================================================
+  TERRITORIO APP - CONTEXTO Y DISEÑO DE LA APLICACIÓN
+================================================================================
+
+1. CONTEXTO Y PROPÓSITO
+--------------------------------------------------------------------------------
+
+Territorio App es una aplicación web de uso INTERNO para equipos que realizan
+recorridos territoriales semanales por manzana dentro de una comuna.
+
+NO es una aplicación de reclamos ciudadanos. No gestiona denuncias, tickets,
+vecinos ni trámites públicos. Su foco es operativo y territorial:
+
+  - Asignar manzanas a personas que recorren el territorio.
+  - Registrar presentismo territorial (si se recorrió o no cada manzana).
+  - Cargar observaciones simples de higiene urbana durante el recorrido.
+  - Medir cobertura semanal (cuántas manzanas asignadas fueron recorridas).
+
+Ejemplo de uso real:
+  Un coordinador de la Comuna 2 asigna las manzanas C2REC-001 a C2REC-010 a
+  distintos recorridores. Cada semana, los recorridores cargan si visitaron
+  sus manzanas y qué observaron (basura, voluminosos, puntos críticos, etc.).
+  El administrador o coordinador ve en el dashboard el porcentaje de cobertura.
+
+
+2. USUARIOS Y ROLES
+--------------------------------------------------------------------------------
+
+Hay tres roles con permisos distintos:
+
+  ADMIN
+    - Gestiona usuarios, comunas y manzanas en todo el sistema.
+    - Asigna manzanas a cualquier usuario.
+    - Ve todos los recorridos y el dashboard global.
+    - Puede filtrar el dashboard por comuna.
+
+  COORDINADOR
+    - Opera solo dentro de SU comuna (definida por communeId en su perfil).
+    - Ve y gestiona usuarios de su comuna.
+    - Crea/edita manzanas y asignaciones de su comuna.
+    - Ve recorridos y dashboard de su comuna.
+
+  RECORRIDOR
+    - Ve solo las manzanas que tiene asignadas activamente.
+    - Carga recorridos únicamente sobre esas manzanas.
+    - Ve su propio historial de recorridos.
+    - No accede al dashboard de cobertura ni a gestión de usuarios/comunas.
+
+La autorización se aplica en el backend (middleware JWT + validación por rol
+y comuna). El frontend oculta menús y rutas según el rol, pero la seguridad
+real está en la API.
+
+
+3. CONCEPTOS DEL DOMINIO
+--------------------------------------------------------------------------------
+
+  COMUNA
+    Unidad territorial administrativa (ej. "Comuna 2", código "C2").
+    Agrupa manzanas y usuarios (coordinadores y recorridores).
+
+  MANZANA (block)
+    Unidad mínima de recorrido asignable. Se identifica por un CÓDIGO único
+    (ej. C2REC-045). Puede tener etiqueta, barrio y opcionalmente coordenadas
+    o polígono GeoJSON (MVP: polígono en JSONB; PostGIS queda para más adelante).
+
+  USUARIO
+    Persona del sistema con rol, email y contraseña hasheada.
+
+  ASIGNACIÓN (block_assignment)
+    Relación entre un usuario y una manzana, con fecha de inicio y fin.
+    Solo puede haber UNA asignación activa por par usuario+manzana.
+    Las inactivas conservan historial (soft delete con isActive y endDate).
+
+  RECORRIDO (visit)
+    Registro de que un usuario pasó (o intentó pasar) por una manzana en
+    una fecha. Incluye estado (realizado, no_realizado, parcial), horarios,
+    si pudo recorrer, motivo si no, notas y ubicación opcional.
+
+  OBSERVACIÓN DE HIGIENE (hygiene_observation)
+    Datos relevados en el recorrido: basura, voluminosos, escombros,
+    contenedores desbordados, punto crítico, fotos (URLs en JSONB en MVP),
+    notas. Va ligada 1 a 1 con un recorrido.
+
+
+4. ARQUITECTURA GENERAL
+--------------------------------------------------------------------------------
+
+El proyecto está dividido en dos aplicaciones independientes:
+
+  ┌─────────────────┐         HTTP/JSON          ┌─────────────────┐
+  │    FRONTEND     │  ◄──────────────────────►  │    BACKEND      │
+  │  Vite + React   │      Authorization:        │ Node + Express  │
+  │  localhost:5173 │         Bearer JWT         │  localhost:4000 │
+  └─────────────────┘                            └────────┬────────┘
+                                                          │
+                                                          │ Sequelize ORM
+                                                          ▼
+                                                 ┌─────────────────┐
+                                                 │   PostgreSQL    │
+                                                 │  (Docker 5433)  │
+                                                 └─────────────────┘
+
+  - El frontend es una SPA (Single Page Application) que consume la API REST.
+  - El token JWT se guarda en localStorage y se envía en cada request.
+  - CORS permite solo el origen del frontend (FRONTEND_URL en .env).
+  - La base de datos corre en Docker (puerto 5433 en host para no chocar
+    con otros PostgreSQL en 5432).
+
+
+5. DISEÑO DEL BACKEND
+--------------------------------------------------------------------------------
+
+Estructura por capas (CommonJS):
+
+  src/
+    config/       → variables de entorno y conexión Sequelize
+    models/       → definición de tablas y asociaciones
+    migrations/   → esquema de BD versionado (sequelize-cli)
+    seeders/      → datos de prueba (Comuna 2, usuarios, manzanas)
+    controllers/  → reciben req/res, delegan lógica
+    services/     → reglas de negocio (login, dashboard, asignaciones)
+    routes/       → rutas Express montadas en /api
+    middlewares/  → auth JWT, roles, validación Zod, errores
+    validators/   → schemas Zod por recurso
+    utils/        → JWT, fechas, ApiError
+
+Flujo de un request típico:
+
+  1. Express recibe la petición en /api/...
+  2. authMiddleware verifica JWT y carga req.user (usuario activo).
+  3. requireRoles (si aplica) valida el rol.
+  4. validateMiddleware valida body/query con Zod.
+  5. El controller ejecuta la acción (a veces vía service).
+  6. Sequelize persiste o lee en PostgreSQL.
+  7. errorMiddleware devuelve JSON uniforme { message, errors? }.
+
+Endpoints principales (prefijo /api):
+
+  /auth/login, /auth/me
+  /users, /communes, /blocks, /assignments, /assignments/my-blocks
+  /visits
+  /dashboard/weekly, /dashboard/summary
+
+Reglas de negocio destacadas:
+
+  - Recorridor: POST /visits solo si tiene asignación activa para esa manzana.
+  - Coordinador: no puede ver ni modificar recursos de otra comuna.
+  - Cobertura semanal: semana calendario (lunes a domingo).
+      * Manzanas asignadas activas en ese rango de fechas.
+      * Manzanas con al menos un visit en la semana = recorridas.
+      * Pendientes = asignadas - recorridas.
+      * Porcentaje = recorridas / asignadas (con cuidado de división por cero).
+
+Modelo de datos (tablas):
+
+  communes          → comunas
+  users             → usuarios (FK communeId nullable para admin)
+  blocks            → manzanas (FK communeId)
+  block_assignments → asignaciones usuario-manzana
+  visits            → recorridos
+  hygiene_observations → observaciones (FK visitId, único por visit)
+
+Asociaciones Sequelize:
+  Commune → hasMany Users, Blocks
+  User → hasMany Assignments, Visits
+  Block → hasMany Assignments, Visits
+  Visit → hasOne HygieneObservation
+
+
+6. DISEÑO DEL FRONTEND
+--------------------------------------------------------------------------------
+
+SPA con React Router v6 y contexto de autenticación global (AuthContext).
+
+  src/
+    api/          → cliente fetch + funciones por recurso (authApi, visitsApi...)
+    context/      → AuthProvider (login, logout, usuario actual)
+    hooks/        → useAuth, useFetch
+    components/   → Layout, Sidebar, Navbar, ProtectedRoute, RoleGuard, UI
+    pages/        → una página por funcionalidad principal
+    router/       → AppRouter con rutas y guards por rol
+    utils/        → fechas, helpers de roles
+
+Flujo de autenticación:
+
+  1. LoginPage envía email/password a POST /api/auth/login.
+  2. Guarda token en localStorage.
+  3. ProtectedRoute redirige a /login si no hay sesión.
+  4. Al cargar, AuthContext consulta GET /api/auth/me con el token.
+
+Navegación según rol (Sidebar):
+
+  Admin/Coordinador: Dashboard, Recorridos, Asignaciones, Manzanas, Usuarios
+  Admin solo:        Comunas
+  Recorridor:        Mis manzanas, Cargar recorrido, Recorridos (propios)
+
+Páginas principales:
+
+  LoginPage         → ingreso al sistema
+  DashboardPage     → cobertura semanal, tablas por usuario y manzana
+  UsersPage         → CRUD usuarios (admin/coordinador)
+  CommunesPage      → CRUD comunas (solo admin)
+  BlocksPage        → CRUD manzanas con filtros
+  AssignmentsPage   → asignar/desactivar manzanas
+  MyBlocksPage      → manzanas del recorridor + botón cargar recorrido
+  NewVisitPage      → formulario completo de recorrido + higiene
+  VisitsPage        → listado con filtros
+  VisitDetailPage   → detalle de un recorrido
+
+Estilo visual:
+  CSS propio (variables en index.css), diseño tipo dashboard operativo,
+  sin dependencia de librerías UI pesadas. Enfocado en tablas, tarjetas de
+  estadísticas y formularios claros.
+
+
+7. STACK TECNOLÓGICO
+--------------------------------------------------------------------------------
+
+  Frontend:  Vite, React 18, React Router
+  Backend:   Node.js, Express
+  BD:        PostgreSQL 16
+  ORM:       Sequelize (NO Prisma)
+  Auth:      JWT + bcrypt
+  Validación: Zod
+  Otros:     cors, dotenv, nodemon (dev), sequelize-cli (migraciones)
+
+  Infra local: docker-compose.yml para PostgreSQL
+
+
+8. SEGURIDAD Y ERRORES
+--------------------------------------------------------------------------------
+
+  - Contraseñas nunca se guardan en texto plano (bcrypt).
+  - JWT con secreto configurable (JWT_SECRET).
+  - Usuarios inactivos (isActive=false) no pueden autenticarse.
+  - ApiError centraliza códigos HTTP y mensajes.
+  - En producción no se expone stack trace al cliente.
+  - Soft delete en usuarios y manzanas (isActive=false).
+
+
+9. QUÉ NO INCLUYE EL MVP (ALCANCE FUTURO)
+--------------------------------------------------------------------------------
+
+  - Reclamos o denuncias ciudadanas
+  - Upload real de fotos (solo array de URLs manual)
+  - PostGIS / mapas interactivos (polígono en JSONB por ahora)
+  - App móvil nativa
+  - Chatbot o notificaciones push
+  - Multi-tenant avanzado más allá de comuna por coordinador
+
+
+10. DATOS DE PRUEBA (SEED)
+--------------------------------------------------------------------------------
+
+  Comuna:     Comuna 2 (código C2)
+  Manzanas:   C2REC-001 ... C2REC-010
+  Usuarios:
+    admin@test.com       / password123  (admin)
+    coordinador@test.com / password123  (coordinador Comuna 2)
+    recorridor@test.com  / password123  (recorridor, 5 manzanas asignadas)
+
+  El seeder es idempotente: si los datos ya existen, no duplica al reejecutar.
+  Para reset completo: npm run db:reset en la carpeta backend.
+
+
+11. CÓMO CORRER EL PROYECTO
+--------------------------------------------------------------------------------
+
+  1. docker compose up -d          (PostgreSQL en puerto 5433)
+  2. cd backend && npm install
+     npm run db:migrate && npm run db:seed
+     npm run dev                    (API en :4000)
+  3. cd frontend && npm install
+     npm run dev                     (App en :5173)
+
+  Variables clave:
+    backend/.env  → DATABASE_URL, JWT_SECRET, FRONTEND_URL
+    frontend/.env → VITE_API_URL=http://localhost:4000/api
+
+
+================================================================================
+  Documento generado para el proyecto Territorio App.
+  Uso interno - gestión territorial por manzana.
+================================================================================
