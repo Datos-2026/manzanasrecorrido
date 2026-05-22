@@ -6,9 +6,25 @@ const { errorMiddleware, notFoundMiddleware } = require('./middlewares/errorMidd
 
 const app = express();
 
+const normalizeOrigin = (o) => (o || '').trim().replace(/\/+$/, '');
+
+const allowedOrigins = env.frontendUrl
+  .split(',')
+  .map(normalizeOrigin)
+  .filter(Boolean);
+
 app.use(
   cors({
-    origin: env.frontendUrl,
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const normalized = normalizeOrigin(origin);
+      if (allowedOrigins.includes('*')) return callback(null, true);
+      if (allowedOrigins.includes(normalized)) return callback(null, true);
+      if (/^https:\/\/manzanasrecorrido(-[a-z0-9-]+)?\.vercel\.app$/.test(normalized)) {
+        return callback(null, true);
+      }
+      return callback(new Error(`Origen no permitido por CORS: ${origin}`));
+    },
     credentials: true,
   })
 );
