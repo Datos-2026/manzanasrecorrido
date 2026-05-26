@@ -1063,6 +1063,57 @@ textarea {
 .radio-grid--quad .radio-card input { width: 14px; height: 14px; }
 .radio-card--disabled { opacity: 0.45; cursor: not-allowed; }
 .radio-card--disabled input { pointer-events: none; }
+
+/* Week picker compacto y responsive */
+.week-picker {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  margin-bottom: var(--space-4);
+}
+.week-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 10px 4px;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  cursor: pointer;
+  min-height: 64px;
+  font-family: inherit;
+}
+.week-chip__label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.week-chip__num {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--gcba-blue);
+  line-height: 1;
+}
+.week-chip--active {
+  border: 2px solid var(--gcba-blue);
+  background: rgba(21, 50, 68, 0.04);
+  padding: 9px 3px;
+}
+.week-chip--disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+@media (max-width: 360px) {
+  .week-chip { min-height: 56px; padding: 8px 2px; }
+  .week-chip__num { font-size: 18px; }
+  .week-chip__label { font-size: 9px; }
+}
 .radio-card {
   display: flex;
   align-items: center;

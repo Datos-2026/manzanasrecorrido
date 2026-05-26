@@ -216,17 +216,29 @@ export default function MyBlocksPage() {
                 Cada manzana tiene 5 semanas de relevamiento. Elegí cuál vas a hacer ahora.
               </p>
               <ErrorState message={actionError} />
-              <RadioGroup
-                name="weekChoice"
-                columns={5}
-                value={String(selectedWeek)}
-                onChange={(v) => setSelectedWeek(Number(v))}
-                options={[1, 2, 3, 4, 5].map((w) => ({
-                  value: String(w),
-                  label: `Semana ${w}`,
-                  disabled: startingFor.completedWeeks?.includes(w),
-                }))}
-              />
+              <div className="week-picker" role="radiogroup" aria-label="Elegir semana">
+                {[1, 2, 3, 4, 5].map((w) => {
+                  const disabled = startingFor.completedWeeks?.includes(w);
+                  const active = selectedWeek === w;
+                  return (
+                    <button
+                      key={w}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      aria-disabled={disabled || undefined}
+                      disabled={disabled}
+                      onClick={() => setSelectedWeek(w)}
+                      className={`week-chip${active ? ' week-chip--active' : ''}${
+                        disabled ? ' week-chip--disabled' : ''
+                      }`}
+                    >
+                      <span className="week-chip__label">Semana</span>
+                      <span className="week-chip__num">{w}</span>
+                    </button>
+                  );
+                })}
+              </div>
               {startingFor.completedWeeks?.length > 0 && (
                 <p
                   style={{ margin: '12px 0 0', fontSize: 12, color: 'var(--text-muted)' }}
