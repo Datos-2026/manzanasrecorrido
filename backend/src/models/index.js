@@ -5,6 +5,7 @@ const Block = require('./Block')(sequelize);
 const BlockAssignment = require('./BlockAssignment')(sequelize);
 const Visit = require('./Visit')(sequelize);
 const HygieneObservation = require('./HygieneObservation')(sequelize);
+const SurveyRound = require('./SurveyRound')(sequelize);
 
 // Commune associations
 Commune.hasMany(User, { foreignKey: 'communeId', as: 'users' });
@@ -34,6 +35,16 @@ Visit.belongsTo(Block, { foreignKey: 'blockId', as: 'block' });
 Visit.hasOne(HygieneObservation, { foreignKey: 'visitId', as: 'hygieneObservation' });
 HygieneObservation.belongsTo(Visit, { foreignKey: 'visitId', as: 'visit' });
 
+// Survey rounds
+User.hasMany(SurveyRound, { foreignKey: 'userId', as: 'surveyRounds' });
+SurveyRound.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+Block.hasMany(SurveyRound, { foreignKey: 'blockId', as: 'surveyRounds' });
+SurveyRound.belongsTo(Block, { foreignKey: 'blockId', as: 'block' });
+
+SurveyRound.hasMany(Visit, { foreignKey: 'surveyRoundId', as: 'visits' });
+Visit.belongsTo(SurveyRound, { foreignKey: 'surveyRoundId', as: 'surveyRound' });
+
 module.exports = {
   sequelize,
   Commune,
@@ -42,4 +53,5 @@ module.exports = {
   BlockAssignment,
   Visit,
   HygieneObservation,
+  SurveyRound,
 };

@@ -1,5 +1,13 @@
 const { Op } = require('sequelize');
-const { sequelize, Visit, Block, User, HygieneObservation, Commune } = require('../models');
+const {
+  sequelize,
+  Visit,
+  Block,
+  User,
+  HygieneObservation,
+  Commune,
+  SurveyRound,
+} = require('../models');
 const ApiError = require('../utils/ApiError');
 const { hasActiveAssignment } = require('../services/assignmentService');
 
@@ -92,6 +100,21 @@ async function create(req, res, next) {
     }
 
     const { hygieneObservation, ...visitData } = data;
+
+    if (visitData.surveyRoundId) {
+      const round = await SurveyRound.findByPk(visitData.surveyRoundId);
+      if (!round) throw new ApiError(404, 'Relevamiento no encontrado');
+      if (req.user.role === 'recorredor' && round.userId !== req.user.id) {
+        throw new ApiError(403, 'No tenés permisos sobre este relevamiento');
+      }
+      if (!round.isActive) {
+        throw new ApiError(400, 'El relevamiento ya está cerrado, no se pueden agregar domicilios');
+      }
+      if (round.blockId !== visitData.blockId) {
+        throw new ApiError(400, 'El relevamiento no corresponde a esta manzana');
+      }
+      visitData.weekNumber = round.weekNumber;
+    }
 
     const visit = await Visit.create(
       { ...visitData, userId },

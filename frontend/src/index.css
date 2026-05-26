@@ -189,11 +189,11 @@ textarea {
 }
 
 .mobile-header__meta {
+  margin: 2px 0 0;
   font-size: 12px;
   color: var(--text-muted);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-weight: 500;
+  letter-spacing: 0.01em;
 }
 
 /* Bottom nav */
@@ -1058,6 +1058,11 @@ textarea {
   margin-bottom: var(--space-4);
 }
 .radio-grid--full { grid-template-columns: 1fr; }
+.radio-grid--quad { grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.radio-grid--quad .radio-card { padding: 8px 4px; font-size: 13px; justify-content: center; min-height: 44px; }
+.radio-grid--quad .radio-card input { width: 14px; height: 14px; }
+.radio-card--disabled { opacity: 0.45; cursor: not-allowed; }
+.radio-card--disabled input { pointer-events: none; }
 .radio-card {
   display: flex;
   align-items: center;

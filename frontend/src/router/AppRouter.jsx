@@ -13,6 +13,7 @@ import MyBlocksPage from '../pages/MyBlocksPage';
 import NewVisitPage from '../pages/NewVisitPage';
 import VisitsPage from '../pages/VisitsPage';
 import VisitDetailPage from '../pages/VisitDetailPage';
+import SurveyRoundPage from '../pages/SurveyRoundPage';
 import NotFoundPage from '../pages/NotFoundPage';
 import MorePage from '../pages/MorePage';
 import { useAuth } from '../hooks/useAuth';
@@ -83,6 +84,7 @@ export default function AppRouter() {
             <Route path="recorridos" element={<VisitsPage />} />
             <Route path="recorridos/nuevo" element={<NewVisitPage />} />
             <Route path="recorridos/:id" element={<VisitDetailPage />} />
+            <Route path="relevamientos/:id" element={<SurveyRoundPage />} />
           </Route>
           <Route path="*" element={<NotFoundPage />} />
         </Routes>

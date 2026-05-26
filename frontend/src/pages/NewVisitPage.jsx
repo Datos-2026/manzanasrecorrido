@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { visitsApi } from '../api/visitsApi';
-import { assignmentsApi } from '../api/assignmentsApi';
+import { surveyRoundsApi } from '../api/surveyRoundsApi';
 import { todayISO } from '../utils/dates';
 import { useGeolocation } from '../hooks/useGeolocation';
 import MobileHeader from '../components/layout/MobileHeader';
 import PageContainer from '../components/ui/PageContainer';
 import SectionCard from '../components/ui/SectionCard';
 import FormField from '../components/ui/FormField';
-import SegmentedControl from '../components/ui/SegmentedControl';
 import RadioGroup from '../components/ui/RadioGroup';
 import PhotoCapture from '../components/ui/PhotoCapture';
 import MultiPhotoCapture from '../components/ui/MultiPhotoCapture';
@@ -152,9 +151,9 @@ const emptyFollowUp = {
 export default function NewVisitPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const blockIdParam = searchParams.get('blockId');
+  const roundIdParam = searchParams.get('roundId');
 
-  const [block, setBlock] = useState(null);
+  const [round, setRound] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState('');
@@ -163,13 +162,6 @@ export default function NewVisitPage() {
   const gps = useGeolocation(true);
 
   const [form, setForm] = useState({
-    visitDate: todayISO(),
-    startTime: '',
-    endTime: '',
-    status: 'realizado',
-    couldVisit: true,
-    reasonNotVisited: '',
-    generalNotes: '',
     street: '',
     streetNumber: '',
     doorbell: '',
@@ -178,39 +170,31 @@ export default function NewVisitPage() {
   });
 
   useEffect(() => {
-    assignmentsApi
-      .myBlocks()
+    if (!roundIdParam) {
+      setNotFound(true);
+      setLoading(false);
+      return;
+    }
+    surveyRoundsApi
+      .get(roundIdParam)
       .then((data) => {
-        if (!data || data.length === 0) {
+        if (!data || !data.isActive) {
           setNotFound(true);
           return;
         }
-        if (blockIdParam) {
-          const found = data.find((b) => b.id === blockIdParam);
-          if (found) {
-            setBlock(found);
-          } else {
-            setNotFound(true);
-          }
-          return;
-        }
-        if (data.length === 1) {
-          setBlock(data[0]);
-        } else {
-          setNotFound(true);
-        }
+        setRound(data);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [blockIdParam]);
+  }, [roundIdParam]);
 
-  if (!loading && (notFound || !block)) {
+  if (!loading && (notFound || !round)) {
     return <Navigate to="/mis-manzanas" replace />;
   }
 
-  const weekNumber = block?.nextWeekNumber || 1;
+  const block = round?.block;
+  const weekNumber = round?.weekNumber || 1;
   const isInitial = weekNumber === 1;
-  const completed = block?.completed;
 
   const setSurvey = (key, value) => {
     setForm((f) => ({ ...f, survey: { ...f.survey, [key]: value } }));
@@ -285,13 +269,10 @@ export default function NewVisitPage() {
 
       const payload = {
         blockId: block.id,
-        visitDate: form.visitDate,
-        startTime: form.startTime || null,
-        endTime: form.endTime || null,
-        status: form.status,
-        couldVisit: form.couldVisit,
-        reasonNotVisited: form.couldVisit ? null : form.reasonNotVisited || null,
-        generalNotes: form.generalNotes || null,
+        surveyRoundId: round.id,
+        visitDate: todayISO(),
+        status: 'realizado',
+        couldVisit: true,
         latitude: gps.coords?.latitude ?? null,
         longitude: gps.coords?.longitude ?? null,
         street: form.street || null,
@@ -303,7 +284,7 @@ export default function NewVisitPage() {
       };
 
       await visitsApi.create(payload);
-      navigate('/recorridos');
+      navigate(`/relevamientos/${round.id}`);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -314,39 +295,18 @@ export default function NewVisitPage() {
   if (loading) {
     return (
       <>
-        <MobileHeader title="Cargar recorrido" backTo="/mis-manzanas" />
+        <MobileHeader title="Cargar domicilio" backTo="/mis-manzanas" />
         <LoadingState />
       </>
     );
   }
 
-  if (completed) {
-    return (
-      <>
-        <MobileHeader title="Recorrido" backTo="/mis-manzanas" subtitle={block.code} />
-        <PageContainer narrow>
-          <SectionCard label={block.code} title="Manzana ya cerrada" noDivider>
-            <p style={{ margin: '0 0 12px', fontSize: 14, color: 'var(--text-muted)' }}>
-              Ya se completaron las 5 semanas de relevamiento para esta manzana. No es necesario
-              cargar nuevos recorridos.
-            </p>
-            <SecondaryButton block onClick={() => navigate('/mis-manzanas')}>
-              Volver a mis manzanas
-            </SecondaryButton>
-          </SectionCard>
-        </PageContainer>
-      </>
-    );
-  }
-
-  const headerSubtitle = `${block.code} · Semana ${weekNumber} de 5`;
-
   return (
     <>
       <MobileHeader
-        title={isInitial ? 'Primer relevamiento' : `Relevamiento ${weekNumber}`}
-        backTo="/mis-manzanas"
-        subtitle={headerSubtitle}
+        title="Cargar domicilio"
+        backTo={`/relevamientos/${round.id}`}
+        subtitle={`${block.code} · Semana ${weekNumber} de 5`}
       />
       <PageContainer narrow>
         <ErrorState message={error} />
@@ -358,18 +318,16 @@ export default function NewVisitPage() {
             {block.label ? ` · ${block.label}` : ''}
           </p>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <span className="context-pill">Asignada a vos</span>
-            <span className="context-pill context-pill--accent">Semana {weekNumber} de 5</span>
-            {!isInitial && block.lastVisitDate && (
-              <span className="context-pill">Última visita: {block.lastVisitDate}</span>
-            )}
+            <span className="context-pill context-pill--accent">
+              {isInitial ? 'Primer relevamiento' : `Semana ${weekNumber} de 5`}
+            </span>
+            <span className="context-pill">Relevamiento abierto</span>
           </div>
         </SectionCard>
 
         <GpsChip {...gps} onRefresh={gps.refetch} />
 
         <form id="visit-form" onSubmit={handleSubmit}>
-          {/* DOMICILIO (común a ambos) */}
           <SectionCard label="Domicilio" title="Datos del domicilio" noDivider>
             <FormField label="Calle" id="street">
               <input
@@ -418,68 +376,16 @@ export default function NewVisitPage() {
             />
           )}
 
-          <SectionCard title="Estado del recorrido" noDivider>
-            <FormField label="Estado">
-              <SegmentedControl
-                variant="yellow"
-                value={form.status}
-                onChange={(status) => setForm({ ...form, status })}
-                options={[
-                  { value: 'realizado', label: 'Realizado' },
-                  { value: 'parcial', label: 'Parcial' },
-                  { value: 'no_realizado', label: 'No realizado' },
-                ]}
-              />
-            </FormField>
-            <FormField label="Fecha" id="visitDate">
-              <input
-                id="visitDate"
-                type="date"
-                value={form.visitDate}
-                onChange={(e) => setForm({ ...form, visitDate: e.target.value })}
-                required
-              />
-            </FormField>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <FormField label="Hora inicio" id="startTime">
-                <input
-                  id="startTime"
-                  type="time"
-                  value={form.startTime}
-                  onChange={(e) => setForm({ ...form, startTime: e.target.value })}
-                />
-              </FormField>
-              <FormField label="Hora fin" id="endTime">
-                <input
-                  id="endTime"
-                  type="time"
-                  value={form.endTime}
-                  onChange={(e) => setForm({ ...form, endTime: e.target.value })}
-                />
-              </FormField>
-            </div>
-            <FormField label="Notas generales (opcional)" id="notes">
-              <textarea
-                id="notes"
-                rows={3}
-                value={form.generalNotes}
-                onChange={(e) => setForm({ ...form, generalNotes: e.target.value })}
-              />
-            </FormField>
-          </SectionCard>
-
-          <div style={{ height: 160 }} aria-hidden="true" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 24 }}>
+            <PrimaryButton type="submit" large block disabled={saving}>
+              {saving ? 'Guardando...' : 'Guardar domicilio'}
+            </PrimaryButton>
+            <SecondaryButton type="button" block onClick={() => navigate(-1)}>
+              Cancelar
+            </SecondaryButton>
+          </div>
         </form>
       </PageContainer>
-
-      <div className="form-footer-fixed">
-        <PrimaryButton type="submit" form="visit-form" large block disabled={saving}>
-          {saving ? 'Guardando...' : `Guardar relevamiento (semana ${weekNumber})`}
-        </PrimaryButton>
-        <SecondaryButton type="button" block onClick={() => navigate(-1)}>
-          Cancelar
-        </SecondaryButton>
-      </div>
     </>
   );
 }
@@ -566,7 +472,7 @@ function InitialFormSections({ survey, setSurvey, isBuilding, isCommerceOrBuildi
         />
         {endsEarly && (
           <p style={{ margin: 0, fontSize: 14, color: 'var(--text-muted)' }}>
-            El relevamiento termina acá. Podés guardar el recorrido sin más datos.
+            El relevamiento de este domicilio termina acá. Podés guardarlo sin más datos.
           </p>
         )}
       </SectionCard>
@@ -804,7 +710,7 @@ function FollowUpFormSections({ followUp, setFollowUp, endsEarly, weekNumber }) 
                 { value: 'no', label: 'No' },
                 { value: 'no_aplica', label: 'No aplica' },
               ]}
-              columns={3}
+              columns={1}
             />
           </FormField>
 

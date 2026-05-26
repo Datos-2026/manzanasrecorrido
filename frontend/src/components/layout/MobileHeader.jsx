@@ -18,8 +18,8 @@ export default function MobileHeader({ title, subtitle, backTo, action }) {
           </button>
         )}
         <div>
-          {subtitle && <p className="mobile-header__meta">{subtitle}</p>}
           <h1 className="mobile-header__title">{title}</h1>
+          {subtitle && <p className="mobile-header__meta">{subtitle}</p>}
         </div>
       </div>
       {action}

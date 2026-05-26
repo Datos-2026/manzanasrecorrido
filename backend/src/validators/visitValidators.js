@@ -28,6 +28,7 @@ const createVisitSchema = z.object({
   doorbell: z.string().optional().nullable(),
   surveyData: z.any().optional().nullable(),
   weekNumber: z.number().int().min(1).max(5).optional().nullable(),
+  surveyRoundId: z.string().uuid().optional().nullable(),
   hygieneObservation: hygieneObservationSchema.optional(),
 });
 

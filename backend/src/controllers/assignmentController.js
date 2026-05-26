@@ -1,5 +1,12 @@
 const { formatDateISO } = require('../utils/dates');
-const { BlockAssignment, Block, User, Commune, Visit } = require('../models');
+const {
+  BlockAssignment,
+  Block,
+  User,
+  Commune,
+  Visit,
+  SurveyRound,
+} = require('../models');
 const ApiError = require('../utils/ApiError');
 const {
   ensureNoDuplicateActive,
@@ -47,34 +54,68 @@ async function myBlocks(req, res, next) {
 
     const blockIds = assignments.map((a) => a.blockId);
 
-    const visits = blockIds.length
-      ? await Visit.findAll({
-          where: { blockId: blockIds, userId: req.user.id },
-          attributes: ['id', 'blockId', 'weekNumber', 'visitDate', 'createdAt'],
-          order: [['createdAt', 'DESC']],
-        })
-      : [];
+    const [visits, activeRounds, finishedRounds] = blockIds.length
+      ? await Promise.all([
+          Visit.findAll({
+            where: { blockId: blockIds, userId: req.user.id },
+            attributes: ['id', 'blockId', 'weekNumber', 'visitDate', 'createdAt'],
+            order: [['createdAt', 'DESC']],
+          }),
+          SurveyRound.findAll({
+            where: { blockId: blockIds, userId: req.user.id, isActive: true },
+          }),
+          SurveyRound.findAll({
+            where: { blockId: blockIds, userId: req.user.id, isActive: false },
+            attributes: ['blockId', 'weekNumber'],
+          }),
+        ])
+      : [[], [], []];
 
-    const byBlock = {};
+    const visitsByBlock = {};
     visits.forEach((v) => {
-      const list = byBlock[v.blockId] || (byBlock[v.blockId] = []);
+      const list = visitsByBlock[v.blockId] || (visitsByBlock[v.blockId] = []);
       list.push(v);
     });
 
+    const activeByBlock = {};
+    activeRounds.forEach((r) => {
+      activeByBlock[r.blockId] = r;
+    });
+
+    const completedWeeksByBlock = {};
+    finishedRounds.forEach((r) => {
+      const set = completedWeeksByBlock[r.blockId] || (completedWeeksByBlock[r.blockId] = new Set());
+      set.add(r.weekNumber);
+    });
+
     const blocks = assignments.map((a) => {
-      const blockVisits = byBlock[a.blockId] || [];
-      const maxWeek = blockVisits.reduce((m, v) => Math.max(m, v.weekNumber || 0), 0);
+      const blockVisits = visitsByBlock[a.blockId] || [];
+      const activeRound = activeByBlock[a.blockId] || null;
+      const completedWeeks = completedWeeksByBlock[a.blockId]
+        ? [...completedWeeksByBlock[a.blockId]].sort((x, y) => x - y)
+        : [];
+
+      const maxCompletedWeek = completedWeeks.length ? Math.max(...completedWeeks) : 0;
+      const nextWeekNumber = Math.min(5, maxCompletedWeek + 1);
       const lastVisit = blockVisits[0] || null;
-      const nextWeekNumber = Math.min(5, maxWeek + 1);
+
       return {
         assignmentId: a.id,
         startDate: a.startDate,
         ...a.block.toJSON(),
         visitsCount: blockVisits.length,
         lastVisitDate: lastVisit ? lastVisit.visitDate : null,
-        currentMaxWeek: maxWeek,
+        completedWeeks,
+        currentMaxWeek: maxCompletedWeek,
         nextWeekNumber,
-        completed: maxWeek >= 5,
+        completed: maxCompletedWeek >= 5,
+        activeRound: activeRound
+          ? {
+              id: activeRound.id,
+              weekNumber: activeRound.weekNumber,
+              startedAt: activeRound.startedAt,
+            }
+          : null,
       };
     });
 
