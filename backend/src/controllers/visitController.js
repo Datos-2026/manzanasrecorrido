@@ -10,6 +10,7 @@ const {
 } = require('../models');
 const ApiError = require('../utils/ApiError');
 const { hasActiveAssignment } = require('../services/assignmentService');
+const { getUserCommuneIds, isAllowedCommune } = require('../utils/communeAccess');
 
 async function list(req, res, next) {
   try {
@@ -20,7 +21,7 @@ async function list(req, res, next) {
     if (req.user.role === 'recorredor') {
       where.userId = req.user.id;
     } else if (req.user.role === 'coordinador') {
-      blockWhere.communeId = req.user.communeId;
+      blockWhere.communeId = { [Op.in]: getUserCommuneIds(req.user) };
     } else if (communeId) {
       blockWhere.communeId = communeId;
     }
@@ -69,7 +70,7 @@ async function getById(req, res, next) {
     if (req.user.role === 'recorredor' && visit.userId !== req.user.id) {
       throw new ApiError(403, 'No tenés permisos');
     }
-    if (req.user.role === 'coordinador' && visit.block.communeId !== req.user.communeId) {
+    if (req.user.role === 'coordinador' && !isAllowedCommune(req.user, visit.block.communeId)) {
       throw new ApiError(403, 'No tenés permisos');
     }
 
@@ -95,7 +96,7 @@ async function create(req, res, next) {
     const block = await Block.findByPk(data.blockId);
     if (!block) throw new ApiError(404, 'Manzana no encontrada');
 
-    if (req.user.role === 'coordinador' && block.communeId !== req.user.communeId) {
+    if (req.user.role === 'coordinador' && !isAllowedCommune(req.user, block.communeId)) {
       throw new ApiError(403, 'No tenés permisos');
     }
 
@@ -158,7 +159,7 @@ async function update(req, res, next) {
     if (req.user.role === 'recorredor' && visit.userId !== req.user.id) {
       throw new ApiError(403, 'No tenés permisos');
     }
-    if (req.user.role === 'coordinador' && visit.block.communeId !== req.user.communeId) {
+    if (req.user.role === 'coordinador' && !isAllowedCommune(req.user, visit.block.communeId)) {
       throw new ApiError(403, 'No tenés permisos');
     }
 
@@ -198,7 +199,7 @@ async function remove(req, res, next) {
     if (req.user.role === 'recorredor' && visit.userId !== req.user.id) {
       throw new ApiError(403, 'No tenés permisos');
     }
-    if (req.user.role === 'coordinador' && visit.block.communeId !== req.user.communeId) {
+    if (req.user.role === 'coordinador' && !isAllowedCommune(req.user, visit.block.communeId)) {
       throw new ApiError(403, 'No tenés permisos');
     }
 

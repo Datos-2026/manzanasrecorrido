@@ -16,16 +16,16 @@ function assertAdmin(user) {
   return user.role === 'admin';
 }
 
+const { Op } = require('sequelize');
+const { getUserCommuneIds, isAllowedCommune } = require('../utils/communeAccess');
+
 function assertSameCommune(user, communeId) {
-  if (user.role === 'admin') return true;
-  if (user.role === 'coordinador' && user.communeId === communeId) return true;
-  return false;
+  return isAllowedCommune(user, communeId);
 }
 
 function getCommuneFilter(user) {
   if (user.role === 'admin') return {};
-  if (user.role === 'coordinador') return { communeId: user.communeId };
-  return { communeId: user.communeId };
+  return { communeId: { [Op.in]: getUserCommuneIds(user) } };
 }
 
 module.exports = {

@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { blocksApi } from '../api/blocksApi';
 import { communesApi } from '../api/communesApi';
+import { visitsApi } from '../api/visitsApi';
 import { useAuth } from '../hooks/useAuth';
 import { isAdmin } from '../utils/roles';
+import { exportBlockToPdf } from '../utils/pdfExport';
 import MobileHeader from '../components/layout/MobileHeader';
 import PageContainer from '../components/ui/PageContainer';
 import EntityCard from '../components/ui/EntityCard';
@@ -27,6 +29,7 @@ export default function BlocksPage() {
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [exportingId, setExportingId] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -97,6 +100,34 @@ export default function BlocksPage() {
     }
   };
 
+  const handleExportPdf = async (block) => {
+    setExportingId(block.id);
+    setError('');
+    try {
+      const visits = await visitsApi.list({ blockId: block.id });
+      const detailed = await Promise.all(
+        visits.map((v) => visitsApi.get(v.id).catch(() => v))
+      );
+      const completedWeeks = [
+        ...new Set(detailed.map((v) => v.weekNumber).filter(Boolean)),
+      ];
+      const lastVisitDate = detailed
+        .map((v) => v.visitDate)
+        .filter(Boolean)
+        .sort()
+        .reverse()[0];
+      exportBlockToPdf({
+        block,
+        visits: detailed,
+        summary: { completedWeeks, lastVisitDate },
+      });
+    } catch (err) {
+      setError('No se pudo exportar la manzana: ' + err.message);
+    } finally {
+      setExportingId(null);
+    }
+  };
+
   return (
     <>
       <MobileHeader title="Inventario de manzanas" />
@@ -160,6 +191,13 @@ export default function BlocksPage() {
                     <>
                       <SecondaryButton block onClick={() => openEdit(b)}>
                         Editar
+                      </SecondaryButton>
+                      <SecondaryButton
+                        block
+                        onClick={() => handleExportPdf(b)}
+                        disabled={exportingId === b.id}
+                      >
+                        {exportingId === b.id ? 'Generando PDF...' : 'Exportar PDF'}
                       </SecondaryButton>
                       {b.isActive && (
                         <SecondaryButton block danger onClick={() => handleDeactivate(b.id)}>

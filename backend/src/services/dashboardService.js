@@ -9,26 +9,31 @@ const {
 } = require('../models');
 const { getWeekStart, getWeekEnd, formatDateISO, parseDateOnly } = require('../utils/dates');
 
-function buildActiveAssignmentWhere(weekStartStr, weekEndStr, communeId = null) {
-  const where = {
+function buildActiveAssignmentWhere(weekStartStr, weekEndStr) {
+  return {
     isActive: true,
     startDate: { [Op.lte]: weekEndStr },
     [Op.or]: [{ endDate: null }, { endDate: { [Op.gte]: weekStartStr } }],
   };
-
-  return where;
 }
 
-async function getWeeklyDashboard({ weekStart: weekStartParam, communeId }) {
+function normalizeCommuneIds(value) {
+  if (!value) return null;
+  if (Array.isArray(value)) return value.length ? value : null;
+  return [value];
+}
+
+async function getWeeklyDashboard({ weekStart: weekStartParam, communeIds }) {
   const weekStartDate = weekStartParam ? parseDateOnly(weekStartParam) : getWeekStart();
   const weekEndDate = getWeekEnd(weekStartDate);
   const weekStartStr = formatDateISO(weekStartDate);
   const weekEndStr = formatDateISO(weekEndDate);
 
+  const ids = normalizeCommuneIds(communeIds);
   const assignmentWhere = buildActiveAssignmentWhere(weekStartStr, weekEndStr);
 
   const blockWhere = {};
-  if (communeId) blockWhere.communeId = communeId;
+  if (ids) blockWhere.communeId = { [Op.in]: ids };
 
   const assignments = await BlockAssignment.findAll({
     where: assignmentWhere,
@@ -143,40 +148,50 @@ async function getWeeklyDashboard({ weekStart: weekStartParam, communeId }) {
   };
 }
 
-async function getSummary(communeId = null) {
+async function getSummary(communeIds = null) {
   const now = new Date();
   const monthStart = formatDateISO(new Date(now.getFullYear(), now.getMonth(), 1));
   const monthEnd = formatDateISO(new Date(now.getFullYear(), now.getMonth() + 1, 0));
 
+  const ids = normalizeCommuneIds(communeIds);
+  const inFilter = ids ? { [Op.in]: ids } : null;
+
   const userWhere = { isActive: true, role: { [Op.ne]: 'admin' } };
   const blockWhere = { isActive: true };
-  const assignmentWhere = { isActive: true };
 
-  if (communeId) {
-    userWhere.communeId = communeId;
-    blockWhere.communeId = communeId;
+  if (inFilter) {
+    userWhere.communeId = inFilter;
+    blockWhere.communeId = inFilter;
   }
 
   const activeUsers = await User.count({ where: userWhere });
-  const activeBlocks = await Block.count({ where: blockWhere });
+  const totalBlocks = await Block.count({ where: blockWhere });
 
-  const assignments = await BlockAssignment.findAll({
-    where: assignmentWhere,
+  const assignmentsWithBlocks = await BlockAssignment.findAll({
+    where: { isActive: true },
+    attributes: ['blockId'],
     include: [
       {
         model: Block,
         as: 'block',
-        where: communeId ? { communeId } : undefined,
-        required: !!communeId,
+        where: inFilter ? { communeId: inFilter, isActive: true } : { isActive: true },
+        required: true,
+        attributes: ['id'],
       },
     ],
   });
-  const activeAssignments = assignments.length;
+  const assignedBlockIds = new Set(assignmentsWithBlocks.map((a) => a.blockId));
+  const assignedBlocksCount = assignedBlockIds.size;
+  const activeAssignments = assignmentsWithBlocks.length;
+  const assignmentCoveragePercentage =
+    totalBlocks > 0
+      ? Math.round((assignedBlocksCount / totalBlocks) * 1000) / 10
+      : 0;
 
   const visitsThisMonth = await Visit.count({
     where: { visitDate: { [Op.between]: [monthStart, monthEnd] } },
-    include: communeId
-      ? [{ model: Block, as: 'block', where: { communeId }, required: true }]
+    include: inFilter
+      ? [{ model: Block, as: 'block', where: { communeId: inFilter }, required: true }]
       : [],
   });
 
@@ -187,8 +202,8 @@ async function getSummary(communeId = null) {
         model: Visit,
         as: 'visit',
         required: true,
-        include: communeId
-          ? [{ model: Block, as: 'block', where: { communeId }, required: true }]
+        include: inFilter
+          ? [{ model: Block, as: 'block', where: { communeId: inFilter }, required: true }]
           : [],
       },
     ],
@@ -196,7 +211,11 @@ async function getSummary(communeId = null) {
 
   return {
     activeUsers,
-    activeBlocks,
+    activeBlocks: totalBlocks,
+    totalBlocks,
+    assignedBlocks: assignedBlocksCount,
+    unassignedBlocks: Math.max(0, totalBlocks - assignedBlocksCount),
+    assignmentCoveragePercentage,
     activeAssignments,
     visitsThisMonth,
     criticalPoints,

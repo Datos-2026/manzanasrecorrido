@@ -11,6 +11,21 @@ const SurveyRound = require('./SurveyRound')(sequelize);
 Commune.hasMany(User, { foreignKey: 'communeId', as: 'users' });
 User.belongsTo(Commune, { foreignKey: 'communeId', as: 'commune' });
 
+User.belongsToMany(Commune, {
+  through: 'user_communes',
+  as: 'communes',
+  foreignKey: 'userId',
+  otherKey: 'communeId',
+  timestamps: true,
+});
+Commune.belongsToMany(User, {
+  through: 'user_communes',
+  as: 'assignedUsers',
+  foreignKey: 'communeId',
+  otherKey: 'userId',
+  timestamps: true,
+});
+
 Commune.hasMany(Block, { foreignKey: 'communeId', as: 'blocks' });
 Block.belongsTo(Commune, { foreignKey: 'communeId', as: 'commune' });
 

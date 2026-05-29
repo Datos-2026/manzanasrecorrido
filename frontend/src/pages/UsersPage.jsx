@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import { usersApi } from '../api/usersApi';
 import { communesApi } from '../api/communesApi';
 import { useAuth } from '../hooks/useAuth';
-import { isAdmin } from '../utils/roles';
-import { ROLE_LABELS } from '../utils/roles';
+import { isAdmin, ROLE_LABELS } from '../utils/roles';
 import MobileHeader from '../components/layout/MobileHeader';
 import PageContainer from '../components/ui/PageContainer';
 import EntityCard from '../components/ui/EntityCard';
@@ -22,8 +21,15 @@ const emptyForm = {
   phone: '',
   password: '',
   role: 'recorredor',
-  communeId: '',
+  communeIds: [],
 };
+
+function getUserCommuneNames(u) {
+  const list = u.communes?.length ? u.communes : u.commune ? [u.commune] : [];
+  if (!list.length) return 'Sin comuna';
+  if (list.length <= 2) return list.map((c) => c.name).join(', ');
+  return `${list.length} comunas`;
+}
 
 export default function UsersPage() {
   const { user } = useAuth();
@@ -40,10 +46,7 @@ export default function UsersPage() {
     setLoading(true);
     setError('');
     try {
-      const [u, c] = await Promise.all([
-        usersApi.list(),
-        isAdmin(user) ? communesApi.list() : Promise.resolve([]),
-      ]);
+      const [u, c] = await Promise.all([usersApi.list(), communesApi.list()]);
       setUsers(u);
       setCommunes(c);
     } catch (err) {
@@ -59,12 +62,22 @@ export default function UsersPage() {
 
   const filtered = roleFilter ? users.filter((u) => u.role === roleFilter) : users;
 
+  const myCommuneIds = user?.communeIds || (user?.communeId ? [user.communeId] : []);
+
   const openCreate = () => {
-    setForm({ ...emptyForm, communeId: user.communeId || '' });
+    setForm({
+      ...emptyForm,
+      communeIds: isAdmin(user) ? [] : [...myCommuneIds],
+    });
     setModal('create');
   };
 
   const openEdit = (u) => {
+    const ids = u.communes?.length
+      ? u.communes.map((c) => c.id)
+      : u.communeId
+      ? [u.communeId]
+      : [];
     setForm({
       firstName: u.firstName,
       lastName: u.lastName,
@@ -72,9 +85,19 @@ export default function UsersPage() {
       phone: u.phone || '',
       password: '',
       role: u.role,
-      communeId: u.communeId || '',
+      communeIds: ids,
     });
     setModal({ type: 'edit', id: u.id });
+  };
+
+  const toggleCommune = (id) => {
+    setForm((f) => {
+      const has = f.communeIds.includes(id);
+      return {
+        ...f,
+        communeIds: has ? f.communeIds.filter((x) => x !== id) : [...f.communeIds, id],
+      };
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -85,7 +108,11 @@ export default function UsersPage() {
       const payload = { ...form };
       if (!payload.phone) payload.phone = null;
       if (!payload.password) delete payload.password;
-      if (payload.role === 'admin') payload.communeId = null;
+      if (payload.role === 'admin') {
+        payload.communeIds = [];
+      }
+      // backend admite communeIds (array) y communeId (legado)
+      payload.communeId = payload.communeIds[0] || null;
       if (modal === 'create') await usersApi.create(payload);
       else await usersApi.update(modal.id, payload);
       setModal(null);
@@ -106,6 +133,10 @@ export default function UsersPage() {
       setError(err.message);
     }
   };
+
+  const selectableCommunes = isAdmin(user)
+    ? communes
+    : communes.filter((c) => myCommuneIds.includes(c.id));
 
   return (
     <>
@@ -145,7 +176,7 @@ export default function UsersPage() {
                       <StatusChip status={u.isActive ? 'activo' : 'inactivo'} />
                     </>
                   }
-                  meta={`${ROLE_LABELS[u.role]} · ${u.commune?.name || 'Sin comuna'}`}
+                  meta={`${ROLE_LABELS[u.role]} · ${getUserCommuneNames(u)}`}
                   actions={
                     <>
                       <SecondaryButton block onClick={() => openEdit(u)}>
@@ -204,40 +235,58 @@ export default function UsersPage() {
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
                   required={modal === 'create'}
+                  placeholder={modal === 'create' ? '' : 'Dejar vacío para no cambiar'}
                 />
               </FormField>
               {isAdmin(user) && (
-                <>
-                  <FormField label="Rol" id="role">
-                    <select
-                      id="role"
-                      value={form.role}
-                      onChange={(e) => setForm({ ...form, role: e.target.value })}
-                    >
-                      <option value="recorredor">Recorredor</option>
-                      <option value="coordinador">Coordinador</option>
-                      <option value="admin">Administrador</option>
-                    </select>
-                  </FormField>
-                  {form.role !== 'admin' && (
-                    <FormField label="Comuna" id="commune">
-                      <select
-                        id="commune"
-                        value={form.communeId}
-                        onChange={(e) => setForm({ ...form, communeId: e.target.value })}
-                        required
-                      >
-                        <option value="">Seleccionar...</option>
-                        {communes.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.name}
-                          </option>
-                        ))}
-                      </select>
-                    </FormField>
-                  )}
-                </>
+                <FormField label="Rol" id="role">
+                  <select
+                    id="role"
+                    value={form.role}
+                    onChange={(e) => setForm({ ...form, role: e.target.value })}
+                  >
+                    <option value="recorredor">Recorredor</option>
+                    <option value="coordinador">Coordinador</option>
+                    <option value="admin">Administrador</option>
+                  </select>
+                </FormField>
               )}
+
+              {form.role !== 'admin' && (
+                <FormField label="Comunas asignadas">
+                  <div className="commune-checklist">
+                    {selectableCommunes.length === 0 && (
+                      <p
+                        style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)' }}
+                      >
+                        No hay comunas disponibles.
+                      </p>
+                    )}
+                    {selectableCommunes.map((c) => {
+                      const checked = form.communeIds.includes(c.id);
+                      return (
+                        <label
+                          key={c.id}
+                          className={`commune-checklist__item${
+                            checked ? ' commune-checklist__item--active' : ''
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleCommune(c.id)}
+                          />
+                          <span>{c.name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>
+                    Podés asignar más de una comuna por usuario.
+                  </p>
+                </FormField>
+              )}
+
               <PrimaryButton type="submit" block disabled={saving}>
                 Guardar
               </PrimaryButton>
@@ -251,4 +300,3 @@ export default function UsersPage() {
     </>
   );
 }
-

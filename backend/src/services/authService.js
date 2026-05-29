@@ -15,15 +15,34 @@ async function login(email, password) {
   }
 
   const token = signToken({ userId: user.id, role: user.role });
-  return { token, user: user.toSafeJSON() };
+  const safe = await getMe(user.id);
+  return { token, user: safe };
 }
 
 async function getMe(userId) {
+  const { Commune } = require('../models');
   const user = await User.findByPk(userId, {
-    include: [{ association: 'commune', attributes: ['id', 'name', 'code'] }],
+    include: [
+      { model: Commune, as: 'commune', attributes: ['id', 'name', 'code'] },
+      {
+        model: Commune,
+        as: 'communes',
+        attributes: ['id', 'name', 'code'],
+        through: { attributes: [] },
+      },
+    ],
   });
   if (!user) throw new ApiError(404, 'Usuario no encontrado');
-  return user.toSafeJSON();
+
+  const safe = user.get({ plain: true });
+  delete safe.passwordHash;
+
+  const ids = new Set();
+  if (safe.commune?.id) ids.add(safe.commune.id);
+  (safe.communes || []).forEach((c) => ids.add(c.id));
+  safe.communeIds = [...ids];
+
+  return safe;
 }
 
 module.exports = { login, getMe };

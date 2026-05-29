@@ -8,6 +8,7 @@ const {
 } = require('../models');
 const ApiError = require('../utils/ApiError');
 const { hasActiveAssignment } = require('../services/assignmentService');
+const { isAllowedCommune } = require('../utils/communeAccess');
 
 const blockInclude = (commune = true) => ({
   model: Block,
@@ -27,7 +28,7 @@ async function start(req, res, next) {
 
     const block = await Block.findByPk(blockId);
     if (!block) throw new ApiError(404, 'Manzana no encontrada');
-    if (req.user.role === 'coordinador' && block.communeId !== req.user.communeId) {
+    if (req.user.role === 'coordinador' && !isAllowedCommune(req.user, block.communeId)) {
       throw new ApiError(403, 'No tenés permisos sobre esta manzana');
     }
 
@@ -91,7 +92,7 @@ async function getById(req, res, next) {
     }
     if (
       req.user.role === 'coordinador' &&
-      round.block.communeId !== req.user.communeId
+      !isAllowedCommune(req.user, round.block.communeId)
     ) {
       throw new ApiError(403, 'No tenés permisos');
     }

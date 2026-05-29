@@ -1,6 +1,7 @@
 const { Op } = require('sequelize');
 const { Block, Commune, BlockAssignment } = require('../models');
 const ApiError = require('../utils/ApiError');
+const { getUserCommuneIds, isAllowedCommune } = require('../utils/communeAccess');
 
 async function list(req, res, next) {
   try {
@@ -12,7 +13,7 @@ async function list(req, res, next) {
     const where = {};
 
     if (req.user.role === 'coordinador') {
-      where.communeId = req.user.communeId;
+      where.communeId = { [Op.in]: getUserCommuneIds(req.user) };
     } else if (communeId) {
       where.communeId = communeId;
     }
@@ -52,7 +53,7 @@ async function getById(req, res, next) {
     });
     if (!block) throw new ApiError(404, 'Manzana no encontrada');
 
-    if (req.user.role === 'coordinador' && block.communeId !== req.user.communeId) {
+    if (req.user.role === 'coordinador' && !isAllowedCommune(req.user, block.communeId)) {
       throw new ApiError(403, 'No tenés permisos');
     }
 
@@ -65,8 +66,8 @@ async function getById(req, res, next) {
 async function create(req, res, next) {
   try {
     const data = req.validated;
-    if (req.user.role === 'coordinador' && data.communeId !== req.user.communeId) {
-      throw new ApiError(403, 'No podés crear manzanas fuera de tu comuna');
+    if (req.user.role === 'coordinador' && !isAllowedCommune(req.user, data.communeId)) {
+      throw new ApiError(403, 'No podés crear manzanas fuera de tus comunas');
     }
 
     const block = await Block.create(data);
@@ -84,7 +85,7 @@ async function update(req, res, next) {
     const block = await Block.findByPk(req.params.id);
     if (!block) throw new ApiError(404, 'Manzana no encontrada');
 
-    if (req.user.role === 'coordinador' && block.communeId !== req.user.communeId) {
+    if (req.user.role === 'coordinador' && !isAllowedCommune(req.user, block.communeId)) {
       throw new ApiError(403, 'No tenés permisos');
     }
 
@@ -100,7 +101,7 @@ async function remove(req, res, next) {
     const block = await Block.findByPk(req.params.id);
     if (!block) throw new ApiError(404, 'Manzana no encontrada');
 
-    if (req.user.role === 'coordinador' && block.communeId !== req.user.communeId) {
+    if (req.user.role === 'coordinador' && !isAllowedCommune(req.user, block.communeId)) {
       throw new ApiError(403, 'No tenés permisos');
     }
 

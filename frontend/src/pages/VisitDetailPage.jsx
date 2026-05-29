@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { visitsApi } from '../api/visitsApi';
 import { formatDate } from '../utils/dates';
+import { exportVisitToPdf } from '../utils/pdfExport';
 import MobileHeader from '../components/layout/MobileHeader';
 import PageContainer from '../components/ui/PageContainer';
 import SectionCard from '../components/ui/SectionCard';
 import StatusChip from '../components/ui/StatusChip';
 import LoadingState from '../components/ui/LoadingState';
 import ErrorState from '../components/ui/ErrorState';
+import SecondaryButton from '../components/ui/SecondaryButton';
 
 const SURVEY_LABELS_INITIAL = {
   frontType: 'Tipo de frente',
@@ -160,10 +162,23 @@ export default function VisitDetailPage() {
 
   const h = visit.hygieneObservation;
 
+  const handleExportPdf = () => {
+    try {
+      exportVisitToPdf(visit);
+    } catch (err) {
+      setError('No se pudo exportar el PDF: ' + err.message);
+    }
+  };
+
   return (
     <>
       <MobileHeader title="Detalle del recorrido" backTo="/recorridos" />
       <PageContainer>
+        <div style={{ marginBottom: 12 }}>
+          <SecondaryButton block onClick={handleExportPdf}>
+            Exportar relevamiento en PDF
+          </SecondaryButton>
+        </div>
         <SectionCard
           label="Estado"
           title={visit.block?.code}

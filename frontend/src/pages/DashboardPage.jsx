@@ -53,7 +53,12 @@ export default function DashboardPage() {
     load();
   }, [weekStart, communeId]);
 
-  const subtitle = user?.commune?.name || (isAdmin(user) ? 'Todas las comunas' : ROLE_LABELS[user?.role]);
+  const userCommunes = user?.communes?.length ? user.communes : user?.commune ? [user.commune] : [];
+  const subtitle = isAdmin(user)
+    ? 'Todas las comunas'
+    : userCommunes.length
+    ? userCommunes.map((c) => c.name).join(' · ')
+    : ROLE_LABELS[user?.role];
 
   if (loading) {
     return (
@@ -112,12 +117,67 @@ export default function DashboardPage() {
         </div>
 
         {summary && (
-          <SectionCard label="Indicadores" title="Resumen del mes">
-            <p style={{ margin: 0, fontSize: 14, color: 'var(--text-muted)' }}>
-              Puntos críticos detectados: <strong>{summary.criticalPoints}</strong> · Recorridos del
-              mes: <strong>{summary.visitsThisMonth}</strong>
-            </p>
-          </SectionCard>
+          <>
+            <SectionCard
+              label="Asignación territorial"
+              title="Cobertura de asignación"
+            >
+              <div className="stats-grid">
+                <div className="stat-card stat-card--featured">
+                  <p className="stat-card__label">% manzanas con recorredor asignado</p>
+                  <p className="stat-card__value">
+                    {summary.assignmentCoveragePercentage ?? 0}%
+                  </p>
+                  <div className="progress-bar">
+                    <div
+                      className="progress-bar__fill"
+                      style={{ width: `${summary.assignmentCoveragePercentage ?? 0}%` }}
+                    />
+                  </div>
+                </div>
+                <StatCard
+                  label="Manzanas totales"
+                  value={summary.totalBlocks ?? 0}
+                />
+                <StatCard
+                  label="Con asignación"
+                  value={summary.assignedBlocks ?? 0}
+                />
+                <StatCard
+                  label="Sin asignación"
+                  value={summary.unassignedBlocks ?? 0}
+                />
+              </div>
+              <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--text-muted)' }}>
+                {summary.unassignedBlocks > 0
+                  ? `Hay ${summary.unassignedBlocks} manzana${
+                      summary.unassignedBlocks === 1 ? '' : 's'
+                    } sin recorredor.`
+                  : 'Todas las manzanas activas tienen recorredor asignado.'}
+              </p>
+            </SectionCard>
+
+            <SectionCard label="Indicadores" title="Resumen del mes">
+              <div className="stats-grid">
+                <StatCard
+                  label="Recorridos del mes"
+                  value={summary.visitsThisMonth ?? 0}
+                />
+                <StatCard
+                  label="Puntos críticos"
+                  value={summary.criticalPoints ?? 0}
+                />
+                <StatCard
+                  label="Usuarios activos"
+                  value={summary.activeUsers ?? 0}
+                />
+                <StatCard
+                  label="Asignaciones activas"
+                  value={summary.activeAssignments ?? 0}
+                />
+              </div>
+            </SectionCard>
+          </>
         )}
 
         <h2 className="page-title" style={{ fontSize: '1.125rem' }}>

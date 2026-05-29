@@ -1,3 +1,4 @@
+const { Op } = require('sequelize');
 const { formatDateISO } = require('../utils/dates');
 const {
   BlockAssignment,
@@ -12,6 +13,7 @@ const {
   ensureNoDuplicateActive,
   validateBlockInCommune,
 } = require('../services/assignmentService');
+const { getUserCommuneIds, isAllowedCommune } = require('../utils/communeAccess');
 
 async function list(req, res, next) {
   try {
@@ -19,7 +21,7 @@ async function list(req, res, next) {
     const blockInclude = { model: Block, as: 'block', include: [{ model: Commune, as: 'commune' }] };
 
     if (req.user.role === 'coordinador') {
-      blockInclude.where = { communeId: req.user.communeId };
+      blockInclude.where = { communeId: { [Op.in]: getUserCommuneIds(req.user) } };
       blockInclude.required = true;
     }
 
@@ -136,11 +138,18 @@ async function create(req, res, next) {
     if (!block) throw new ApiError(404, 'Manzana no encontrada');
 
     if (req.user.role === 'coordinador') {
-      if (block.communeId !== req.user.communeId) {
-        throw new ApiError(403, 'La manzana no pertenece a tu comuna');
+      const allowedIds = getUserCommuneIds(req.user);
+      if (!allowedIds.includes(block.communeId)) {
+        throw new ApiError(403, 'La manzana no pertenece a tus comunas');
       }
-      if (targetUser.communeId !== req.user.communeId) {
-        throw new ApiError(403, 'El usuario no pertenece a tu comuna');
+      const targetCommunes = (await targetUser.getCommunes?.()) || [];
+      const targetIds = targetCommunes.map((c) => c.id);
+      if (targetUser.communeId && !targetIds.includes(targetUser.communeId)) {
+        targetIds.push(targetUser.communeId);
+      }
+      const overlap = targetIds.some((id) => allowedIds.includes(id));
+      if (!overlap) {
+        throw new ApiError(403, 'El usuario no pertenece a tus comunas');
       }
     }
 
@@ -168,7 +177,7 @@ async function update(req, res, next) {
     });
     if (!assignment) throw new ApiError(404, 'Asignación no encontrada');
 
-    if (req.user.role === 'coordinador' && assignment.block.communeId !== req.user.communeId) {
+    if (req.user.role === 'coordinador' && !isAllowedCommune(req.user, assignment.block.communeId)) {
       throw new ApiError(403, 'No tenés permisos');
     }
 
@@ -186,7 +195,7 @@ async function remove(req, res, next) {
     });
     if (!assignment) throw new ApiError(404, 'Asignación no encontrada');
 
-    if (req.user.role === 'coordinador' && assignment.block.communeId !== req.user.communeId) {
+    if (req.user.role === 'coordinador' && !isAllowedCommune(req.user, assignment.block.communeId)) {
       throw new ApiError(403, 'No tenés permisos');
     }
 

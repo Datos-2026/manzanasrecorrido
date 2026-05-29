@@ -329,6 +329,32 @@ textarea {
     padding: var(--space-4);
     border-top: 1px solid rgba(255, 255, 255, 0.12);
   }
+
+  .desktop-sidebar__logout {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--touch-target);
+    padding: 10px 16px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .desktop-sidebar__logout:hover {
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.7);
+  }
+  .desktop-sidebar__logout:focus-visible {
+    outline: 2px solid var(--gcba-cyan);
+    outline-offset: 2px;
+  }
 }
 
 /* Cards */
@@ -870,19 +896,30 @@ textarea {
   display: none;
 }
 
+.entity-list-mobile {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 @media (min-width: 1024px) {
   .data-table-wrap {
     display: block;
     overflow-x: auto;
+    margin-top: var(--space-5);
   }
 
   .entity-list-mobile {
-    display: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
   }
 }
 
-.entity-list-mobile {
-  display: block;
+@media (min-width: 1440px) {
+  .entity-list-mobile {
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  }
 }
 
 /* Modal */
@@ -1159,6 +1196,36 @@ textarea {
   color: #5a3a00;
 }
 
+/* Lista de checkboxes para comunas múltiples */
+.commune-checklist {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 6px;
+  margin-top: 4px;
+}
+.commune-checklist__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  cursor: pointer;
+  user-select: none;
+  min-height: 40px;
+}
+.commune-checklist__item input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--gcba-blue);
+}
+.commune-checklist__item--active {
+  border: 1px solid var(--gcba-blue);
+  background: rgba(21, 50, 68, 0.06);
+}
+
 /* Page header row */
 .page-header-row {
   display: flex;
@@ -1172,5 +1239,52 @@ textarea {
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
+  }
+}
+
+/* ---- Desktop polish para Admin/Coordinador ---- */
+@media (min-width: 1024px) {
+  .page-container {
+    max-width: 1200px;
+    padding: var(--space-5) var(--space-5);
+  }
+
+  .page-container--narrow {
+    max-width: 720px;
+  }
+
+  .modal-sheet {
+    max-width: 720px;
+    padding: var(--space-5) var(--space-5);
+  }
+
+  .mobile-header {
+    height: 72px;
+    padding: 0 var(--space-5);
+  }
+
+  .mobile-header__title {
+    font-size: 1.6rem;
+  }
+
+  .mobile-header__meta {
+    font-size: 13px;
+  }
+
+  /* filtros en grid en desktop */
+  .filter-bar {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+  }
+
+  /* stats-grid en desktop con más espacio */
+  .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+  }
+
+  /* Lista de comunas más cómoda en desktop */
+  .commune-checklist {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   }
 }

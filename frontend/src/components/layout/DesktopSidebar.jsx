@@ -27,12 +27,22 @@ export default function DesktopSidebar() {
         </strong>
         <br />
         <span style={{ opacity: 0.8 }}>{ROLE_LABELS[user?.role]}</span>
-        {user?.commune && (
-          <>
-            <br />
-            <span style={{ opacity: 0.7, fontSize: 13 }}>{user.commune.name}</span>
-          </>
-        )}
+        {(() => {
+          const list = user?.communes?.length
+            ? user.communes
+            : user?.commune
+            ? [user.commune]
+            : [];
+          if (!list.length) return null;
+          return (
+            <>
+              <br />
+              <span style={{ opacity: 0.7, fontSize: 13 }}>
+                {list.map((c) => c.name).join(' · ')}
+              </span>
+            </>
+          );
+        })()}
       </div>
       <nav className="desktop-sidebar__nav">
         {isRecorredor(user) ? (
@@ -80,8 +90,7 @@ export default function DesktopSidebar() {
       <div className="desktop-sidebar__footer">
         <button
           type="button"
-          className="btn btn--secondary btn--block"
-          style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.5)' }}
+          className="desktop-sidebar__logout"
           onClick={logout}
         >
           Cerrar sesión
