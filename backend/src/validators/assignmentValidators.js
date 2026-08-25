@@ -9,6 +9,7 @@ const cadastralFeatureSchema = z.object({
   cadastralId: z.union([z.number(), z.string()]),
   code: z.string().min(1, 'Código de manzana requerido'),
   label: z.string().optional().nullable(),
+  neighborhood: z.string().optional().nullable(),
   communeId: z.string().uuid('Comuna inválida'),
   geometry: geoGeometrySchema,
 });

@@ -2,14 +2,22 @@ import { getToken } from './client';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
+let manzanasCache = null;
+let barriosCache = null;
+
 /**
  * Carga el catálogo catastral: primero desde /geo estático (Vercel/public),
  * si falla intenta el endpoint autenticado del backend.
  */
 export async function loadManzanasCatalog() {
+  if (manzanasCache) return manzanasCache;
+
   try {
     const res = await fetch('/geo/manzanas_catastrales.geojson');
-    if (res.ok) return res.json();
+    if (res.ok) {
+      manzanasCache = await res.json();
+      return manzanasCache;
+    }
   } catch {
     // fallback al API
   }
@@ -22,7 +30,16 @@ export async function loadManzanasCatalog() {
     const data = await res.json().catch(() => ({}));
     throw new Error(data.message || 'No se pudo cargar el mapa de manzanas');
   }
-  return res.json();
+  manzanasCache = await res.json();
+  return manzanasCache;
+}
+
+export async function loadBarriosCatalog() {
+  if (barriosCache) return barriosCache;
+  const res = await fetch('/geo/barrios.geojson');
+  if (!res.ok) throw new Error('No se pudo cargar el mapa de barrios');
+  barriosCache = await res.json();
+  return barriosCache;
 }
 
 export function blockToFeature(block) {

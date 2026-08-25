@@ -161,7 +161,7 @@ async function upsertBlockFromCadastral(cadastral, transaction) {
     code,
     communeId: cadastral.communeId,
     label: cadastral.label || code,
-    neighborhood: commune.name,
+    neighborhood: cadastral.neighborhood || commune.name,
     polygon: cadastral.geometry,
     centroidLat: centroid.lat,
     centroidLng: centroid.lng,
