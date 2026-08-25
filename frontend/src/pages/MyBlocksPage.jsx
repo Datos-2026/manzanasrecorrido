@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { assignmentsApi } from '../api/assignmentsApi';
 import { surveyRoundsApi } from '../api/surveyRoundsApi';
+import { blockToFeature, googleMapsUrl } from '../api/geoApi';
 import { useFetch } from '../hooks/useFetch';
 import MobileHeader from '../components/layout/MobileHeader';
 import PageContainer from '../components/ui/PageContainer';
@@ -10,10 +11,10 @@ import StatusChip from '../components/ui/StatusChip';
 import PrimaryButton from '../components/ui/PrimaryButton';
 import SecondaryButton from '../components/ui/SecondaryButton';
 import SectionCard from '../components/ui/SectionCard';
-import RadioGroup from '../components/ui/RadioGroup';
 import LoadingState from '../components/ui/LoadingState';
 import EmptyState from '../components/ui/EmptyState';
 import ErrorState from '../components/ui/ErrorState';
+import BlockMap from '../components/map/BlockMap';
 
 export default function MyBlocksPage() {
   const navigate = useNavigate();
@@ -36,6 +37,11 @@ export default function MyBlocksPage() {
       !search ||
       b.code.toLowerCase().includes(search.toLowerCase()) ||
       (b.neighborhood || '').toLowerCase().includes(search.toLowerCase())
+  );
+
+  const assignedFeatures = useMemo(
+    () => (blocks || []).map((b) => blockToFeature(b)).filter(Boolean),
+    [blocks]
   );
 
   const openStartModal = (block) => {
@@ -89,6 +95,20 @@ export default function MyBlocksPage() {
           aria-label="Buscar manzana"
         />
 
+        {assignedFeatures.length > 0 && (
+          <SectionCard label="Mapa" title="Tus manzanas asignadas" noDivider>
+            <BlockMap
+              assignedFeatures={assignedFeatures}
+              interactiveCatalog={false}
+              fitToAssigned
+              height={320}
+            />
+            <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>
+              Tocá una manzana en el mapa para ver el link a Google Maps.
+            </p>
+          </SectionCard>
+        )}
+
         <div className="entity-list-mobile">
           {filtered.length ? (
             filtered.map((b) => {
@@ -101,6 +121,7 @@ export default function MyBlocksPage() {
                 : b.visitsCount > 0
                 ? 'parcial'
                 : 'pendiente';
+              const mapsUrl = googleMapsUrl(b.centroidLat, b.centroidLng);
 
               return (
                 <EntityCard
@@ -143,31 +164,43 @@ export default function MyBlocksPage() {
                     </div>
                   }
                   actions={
-                    active ? (
-                      <button
-                        type="button"
-                        className="btn btn--primary btn--block btn--primary-lg"
-                        onClick={() => navigate(`/relevamientos/${active.id}`)}
-                      >
-                        Reanudar relevamiento
-                      </button>
-                    ) : completed ? (
-                      <span
-                        className="btn btn--ghost btn--block"
-                        aria-disabled="true"
-                        style={{ pointerEvents: 'none', opacity: 0.7 }}
-                      >
-                        Recorrido completo
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        className="btn btn--primary btn--block btn--primary-lg"
-                        onClick={() => openStartModal(b)}
-                      >
-                        Iniciar relevamiento
-                      </button>
-                    )
+                    <>
+                      {mapsUrl && (
+                        <a
+                          className="btn btn--secondary btn--block"
+                          href={mapsUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Abrir en Google Maps
+                        </a>
+                      )}
+                      {active ? (
+                        <button
+                          type="button"
+                          className="btn btn--primary btn--block btn--primary-lg"
+                          onClick={() => navigate(`/relevamientos/${active.id}`)}
+                        >
+                          Reanudar relevamiento
+                        </button>
+                      ) : completed ? (
+                        <span
+                          className="btn btn--ghost btn--block"
+                          aria-disabled="true"
+                          style={{ pointerEvents: 'none', opacity: 0.7 }}
+                        >
+                          Recorrido completo
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn btn--primary btn--block btn--primary-lg"
+                          onClick={() => openStartModal(b)}
+                        >
+                          Iniciar relevamiento
+                        </button>
+                      )}
+                    </>
                   }
                 />
               );

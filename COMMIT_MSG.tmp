@@ -1,0 +1,7 @@
+feat: mapa catastral para asignar manzanas y verlas en Google Maps
+
+- Sirve GeoJSON de manzanas CABA (static + /api/geo/manzanas)
+- Seed de las 15 comunas CABA
+- POST /assignments acepta feature catastral (upsert block + asignacion)
+- AssignmentsPage: click en mapa Leaflet, elegir recorredor/comuna
+- MyBlocksPage: mapa de asignadas + Abrir en Google Maps

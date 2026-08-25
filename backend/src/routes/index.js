@@ -7,6 +7,7 @@ const assignmentRoutes = require('./assignmentRoutes');
 const visitRoutes = require('./visitRoutes');
 const surveyRoundRoutes = require('./surveyRoundRoutes');
 const dashboardRoutes = require('./dashboardRoutes');
+const geoRoutes = require('./geoRoutes');
 
 const router = express.Router();
 
@@ -18,5 +19,6 @@ router.use('/assignments', assignmentRoutes);
 router.use('/visits', visitRoutes);
 router.use('/survey-rounds', surveyRoundRoutes);
 router.use('/dashboard', dashboardRoutes);
+router.use('/geo', geoRoutes);
 
 module.exports = router;
