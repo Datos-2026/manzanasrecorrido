@@ -65,7 +65,8 @@ function featureKey(feature) {
  * @param {object} props
  * @param {object|null} props.catalogGeoJson - FeatureCollection del catálogo CABA
  * @param {object[]} [props.assignedFeatures] - Features ya asignadas (con geometry)
- * @param {string|number|null} [props.selectedKey] - id/sm seleccionado
+ * @param {string|number|null} [props.selectedKey] - id/sm seleccionado (compat)
+ * @param {Array<string|number>} [props.selectedKeys] - varias manzanas seleccionadas
  * @param {(feature: object) => void} [props.onSelectFeature]
  * @param {boolean} [props.interactiveCatalog]
  * @param {number|string} [props.height]
@@ -75,6 +76,7 @@ export default function BlockMap({
   catalogGeoJson = null,
   assignedFeatures = [],
   selectedKey = null,
+  selectedKeys = null,
   onSelectFeature,
   interactiveCatalog = true,
   height = 420,
@@ -82,6 +84,27 @@ export default function BlockMap({
 }) {
   const catalogRef = useRef(null);
   const assignedRef = useRef(null);
+
+  const selectedKeySet = useMemo(() => {
+    const set = new Set();
+    if (Array.isArray(selectedKeys)) {
+      selectedKeys.forEach((k) => {
+        if (k != null && k !== '') set.add(String(k));
+      });
+    } else if (selectedKey != null && selectedKey !== '') {
+      set.add(String(selectedKey));
+    }
+    return set;
+  }, [selectedKey, selectedKeys]);
+
+  const isFeatureSelected = (feature) => {
+    const key = featureKey(feature);
+    const sm = feature?.properties?.sm;
+    return (
+      (key && selectedKeySet.has(key)) ||
+      (sm != null && selectedKeySet.has(String(sm)))
+    );
+  };
 
   const assignedCollection = useMemo(
     () => ({
@@ -107,25 +130,20 @@ export default function BlockMap({
       catalogRef.current.setStyle((feature) => {
         const key = featureKey(feature);
         const sm = feature?.properties?.sm;
-        const isSelected =
-          selectedKey != null &&
-          (String(selectedKey) === key || String(selectedKey) === String(sm));
-        if (isSelected) return SELECTED_STYLE;
+        if (isFeatureSelected(feature)) return SELECTED_STYLE;
         if (assignedKeys.has(key) || (sm && assignedKeys.has(String(sm)))) {
           return ASSIGNED_STYLE;
         }
         return BASE_STYLE;
       });
     }
-  }, [selectedKey, assignedKeys]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- isFeatureSelected depends on selectedKeySet
+  }, [selectedKeySet, assignedKeys]);
 
   const catalogStyle = (feature) => {
     const key = featureKey(feature);
     const sm = feature?.properties?.sm;
-    const isSelected =
-      selectedKey != null &&
-      (String(selectedKey) === key || String(selectedKey) === String(sm));
-    if (isSelected) return SELECTED_STYLE;
+    if (isFeatureSelected(feature)) return SELECTED_STYLE;
     if (assignedKeys.has(key) || (sm && assignedKeys.has(String(sm)))) {
       return ASSIGNED_STYLE;
     }
@@ -141,7 +159,7 @@ export default function BlockMap({
       },
       mouseover: (e) => {
         const target = e.target;
-        if (!target || selectedKey === featureKey(feature)) return;
+        if (!target || isFeatureSelected(feature)) return;
         target.setStyle({ weight: 1.4, fillOpacity: 0.28 });
         if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
           target.bringToFront();

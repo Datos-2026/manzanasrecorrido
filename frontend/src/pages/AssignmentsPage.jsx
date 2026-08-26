@@ -42,7 +42,7 @@ export default function AssignmentsPage() {
   const [mapLoading, setMapLoading] = useState(false);
   const [mapReady, setMapReady] = useState(false);
   const [error, setError] = useState('');
-  const [selectedFeature, setSelectedFeature] = useState(null);
+  const [selectedFeatures, setSelectedFeatures] = useState([]);
   const [filters, setFilters] = useState({
     communeId: '',
     barrio: '',
@@ -126,19 +126,20 @@ export default function AssignmentsPage() {
     );
   }, [assignedFeatures, filteredCatalog, communeNumber]);
 
-  const selectedKey = selectedFeature
-    ? featureKey(selectedFeature) || selectedFeature.properties?.sm
-    : null;
-
-  const previewCode = selectedFeature
-    ? buildBlockCode(communeNumber, selectedFeature.properties || {})
-    : null;
+  const selectedKeys = useMemo(
+    () =>
+      selectedFeatures
+        .map((f) => featureKey(f) || f.properties?.sm)
+        .filter((k) => k != null && k !== '')
+        .map(String),
+    [selectedFeatures]
+  );
 
   const handleChangeCommune = (communeId) => {
     setFilters({ communeId, barrio: '' });
     setMapReady(false);
     setFilteredCatalog(null);
-    setSelectedFeature(null);
+    setSelectedFeatures([]);
     setError('');
   };
 
@@ -146,7 +147,7 @@ export default function AssignmentsPage() {
     setFilters((f) => ({ ...f, barrio }));
     setMapReady(false);
     setFilteredCatalog(null);
-    setSelectedFeature(null);
+    setSelectedFeatures([]);
     setError('');
   };
 
@@ -162,7 +163,7 @@ export default function AssignmentsPage() {
 
     setMapLoading(true);
     setError('');
-    setSelectedFeature(null);
+    setSelectedFeatures([]);
     try {
       const catalog = fullCatalog || (await loadManzanasCatalog());
       if (!fullCatalog) setFullCatalog(catalog);
@@ -196,14 +197,32 @@ export default function AssignmentsPage() {
   };
 
   const handleSelectFeature = (feature) => {
-    setSelectedFeature(feature);
+    const key = String(featureKey(feature) || feature.properties?.sm || '');
+    if (!key) return;
+    setSelectedFeatures((prev) => {
+      const exists = prev.some(
+        (f) => String(featureKey(f) || f.properties?.sm || '') === key
+      );
+      if (exists) {
+        return prev.filter(
+          (f) => String(featureKey(f) || f.properties?.sm || '') !== key
+        );
+      }
+      return [...prev, feature];
+    });
     setError('');
+  };
+
+  const removeSelectedFeature = (key) => {
+    setSelectedFeatures((prev) =>
+      prev.filter((f) => String(featureKey(f) || f.properties?.sm || '') !== String(key))
+    );
   };
 
   const handleAssign = async (e) => {
     e.preventDefault();
-    if (!selectedFeature) {
-      setError('Seleccioná una manzana en el mapa');
+    if (!selectedFeatures.length) {
+      setError('Seleccioná al menos una manzana en el mapa');
       return;
     }
     if (!form.userId) {
@@ -218,22 +237,37 @@ export default function AssignmentsPage() {
     setSaving(true);
     setError('');
     try {
-      const props = selectedFeature.properties || {};
-      const code = buildBlockCode(communeNumber, props);
-      await assignmentsApi.create({
-        userId: form.userId,
-        startDate: form.startDate,
-        cadastral: {
-          cadastralId: props.id,
-          code,
-          label: props.nombre || code,
-          neighborhood: filters.barrio || null,
-          communeId: filters.communeId,
-          geometry: selectedFeature.geometry,
-        },
-      });
-      setSelectedFeature(null);
+      const results = await Promise.allSettled(
+        selectedFeatures.map((feature) => {
+          const props = feature.properties || {};
+          const code = buildBlockCode(communeNumber, props);
+          return assignmentsApi.create({
+            userId: form.userId,
+            startDate: form.startDate,
+            cadastral: {
+              cadastralId: props.id,
+              code,
+              label: props.nombre || code,
+              neighborhood: filters.barrio || null,
+              communeId: filters.communeId,
+              geometry: feature.geometry,
+            },
+          });
+        })
+      );
+
+      const failed = results.filter((r) => r.status === 'rejected');
+      const ok = results.length - failed.length;
+      setSelectedFeatures([]);
       await load();
+
+      if (failed.length && ok === 0) {
+        setError(failed[0].reason?.message || 'No se pudieron asignar las manzanas');
+      } else if (failed.length) {
+        setError(
+          `Se asignaron ${ok} manzana${ok === 1 ? '' : 's'}. ${failed.length} no se pudieron asignar (quizá ya estaban asignadas a esa persona).`
+        );
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -330,12 +364,17 @@ export default function AssignmentsPage() {
                   <p style={{ margin: '0 0 8px', fontSize: 13, color: 'var(--text-muted)' }}>
                     {filteredCatalog.features.length} manzana
                     {filteredCatalog.features.length === 1 ? '' : 's'} en el mapa. Hacé click
-                    para seleccionar.
+                    para seleccionar varias (otro click las quita).
+                    {selectedFeatures.length > 0
+                      ? ` · ${selectedFeatures.length} seleccionada${
+                          selectedFeatures.length === 1 ? '' : 's'
+                        }`
+                      : ''}
                   </p>
                   <BlockMap
                     catalogGeoJson={filteredCatalog}
                     assignedFeatures={assignedInScope.length ? assignedInScope : assignedFeatures}
-                    selectedKey={selectedKey}
+                    selectedKeys={selectedKeys}
                     onSelectFeature={handleSelectFeature}
                     height={440}
                   />
@@ -396,30 +435,64 @@ export default function AssignmentsPage() {
                   />
                 </FormField>
 
-                {selectedFeature ? (
+                {selectedFeatures.length ? (
                   <div className="assignments-selected">
                     <div>
-                      <strong>Código:</strong> {previewCode}
+                      <strong>
+                        {selectedFeatures.length} manzana
+                        {selectedFeatures.length === 1 ? '' : 's'} seleccionada
+                        {selectedFeatures.length === 1 ? '' : 's'}
+                      </strong>
+                      {' · '}
+                      {filters.barrio}
                     </div>
-                    <div style={{ marginTop: 4 }}>
-                      <strong>Barrio:</strong> {filters.barrio}
-                    </div>
-                    <div style={{ marginTop: 4, fontSize: 12, color: 'var(--text-muted)' }}>
-                      Catastral: {selectedFeature.properties?.sm || selectedFeature.properties?.nombre}
-                    </div>
-                    <div style={{ marginTop: 6 }}>
+                    <ul
+                      style={{
+                        margin: '8px 0 0',
+                        padding: 0,
+                        listStyle: 'none',
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: 6,
+                      }}
+                    >
+                      {selectedFeatures.map((feature) => {
+                        const key = String(featureKey(feature) || feature.properties?.sm || '');
+                        const code = buildBlockCode(communeNumber, feature.properties || {});
+                        return (
+                          <li key={key}>
+                            <button
+                              type="button"
+                              onClick={() => removeSelectedFeature(key)}
+                              title="Quitar de la selección"
+                              style={{
+                                border: '1px solid var(--border, #cfd8dc)',
+                                background: '#fff8e1',
+                                borderRadius: 999,
+                                padding: '4px 10px',
+                                fontSize: 12,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {code} ×
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    <div style={{ marginTop: 8 }}>
                       <SecondaryButton
                         type="button"
-                        onClick={() => setSelectedFeature(null)}
+                        onClick={() => setSelectedFeatures([])}
                       >
-                        Quitar selección
+                        Limpiar selección
                       </SecondaryButton>
                     </div>
                   </div>
                 ) : (
                   <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--text-muted)' }}>
                     {mapReady
-                      ? 'Hacé click en una manzana del mapa para seleccionarla.'
+                      ? 'Hacé click en una o más manzanas del mapa. Podés asignar varias al mismo recorredor.'
                       : 'Primero mostrá el mapa con los filtros.'}
                   </p>
                 )}
@@ -427,9 +500,13 @@ export default function AssignmentsPage() {
                 <PrimaryButton
                   type="submit"
                   block
-                  disabled={saving || !selectedFeature || !mapReady}
+                  disabled={saving || !selectedFeatures.length || !mapReady}
                 >
-                  {saving ? 'Asignando…' : 'Asignar manzana al recorredor'}
+                  {saving
+                    ? 'Asignando…'
+                    : selectedFeatures.length > 1
+                      ? `Asignar ${selectedFeatures.length} manzanas al recorredor`
+                      : 'Asignar manzana al recorredor'}
                 </PrimaryButton>
               </form>
             </SectionCard>
